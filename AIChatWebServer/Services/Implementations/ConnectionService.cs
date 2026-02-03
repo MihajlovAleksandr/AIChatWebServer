@@ -1,0 +1,247 @@
+﻿using AIChatWebServer.Repositories.Interfaces;
+using AIChatWebServer.Services.Interfaces;
+
+namespace AIChatWebServer.Services.Implementations
+{
+    public sealed class ConnectionService(
+        IConnectionRepository connectionRepository,
+        ILogger<ConnectionService> logger) : IConnectionService
+    {
+        private readonly IConnectionRepository _connectionRepository =
+                connectionRepository
+                ?? throw new ArgumentNullException(nameof(connectionRepository));
+        private readonly ILogger<ConnectionService> _logger =
+                logger
+                ?? throw new ArgumentNullException(nameof(logger));
+
+        public async Task<Guid> AddConnectionAsync(
+            string device,
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(device))
+            {
+                _logger.LogWarning(
+                    "Attempt to add connection with empty device name.");
+
+                throw new ArgumentException(
+                    "Device cannot be null or empty",
+                    nameof(device));
+            }
+
+            var connectionId =
+                await _connectionRepository
+                    .AddConnectionAsync(device, userId, ct);
+
+            _logger.LogInformation(
+                "Connection {ConnectionId} added for device {Device}.",
+                connectionId,
+                device);
+
+            return connectionId;
+        }
+
+        public async Task<Models.Connection.ConnectionInfo?> GetConnectionInfoAsync(
+            Guid connectionId,
+            Guid defaultUserId = default,
+            CancellationToken ct = default)
+        {
+            var info =
+                await _connectionRepository
+                    .GetConnectionInfoAsync(
+                        connectionId,
+                        defaultUserId,
+                        ct);
+
+            if (info == null)
+            {
+                _logger.LogWarning(
+                    "Connection info not found for ConnectionId {ConnectionId}.",
+                    connectionId);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Retrieved connection info for ConnectionId {ConnectionId}.",
+                    connectionId);
+            }
+
+            return info;
+        }
+
+        public async Task<IReadOnlyList<Models.Connection.ConnectionInfo>> GetAllUserConnectionsAsync(
+                Guid userId,
+                CancellationToken ct = default)
+        {
+            var connections =
+                await _connectionRepository
+                    .GetAllUserConnectionsAsync(userId, ct);
+
+            _logger.LogInformation(
+                "Retrieved {Count} connections for User {UserId}.",
+                connections.Count,
+                userId);
+
+            return connections;
+        }
+
+        public async Task<bool> VerifyConnectionAsync(
+            Guid id,
+            Guid userId,
+            string device,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(device))
+            {
+                _logger.LogWarning(
+                    "Attempt to verify connection with empty device name for User {UserId}.",
+                    userId);
+
+                throw new ArgumentException(
+                    "Device cannot be null or empty",
+                    nameof(device));
+            }
+
+            var verified =
+                await _connectionRepository
+                    .VerifyConnectionAsync(
+                        id,
+                        userId,
+                        device,
+                        ct);
+
+            if (verified)
+            {
+                _logger.LogInformation(
+                    "Connection {ConnectionId} for User {UserId} verified.",
+                    id,
+                    userId);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Failed to verify Connection {ConnectionId} for User {UserId}.",
+                    id,
+                    userId);
+            }
+
+            return verified;
+        }
+
+
+        public async Task<Models.Connection.ConnectionInfo?> RemoveConnectionAsync(
+            Guid id,
+            CancellationToken ct = default)
+        {
+            var removed =
+                await _connectionRepository
+                    .RemoveConnectionAsync(id, ct);
+
+            if (removed == null)
+            {
+                _logger.LogWarning(
+                    "Attempted to remove non-existing Connection {ConnectionId}.",
+                    id);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Connection {ConnectionId} removed successfully.",
+                    id);
+            }
+
+            return removed;
+        }
+
+        public async Task<bool> SetLastConnectionAsync(
+            Guid connectionId,
+            bool isOnline,
+            CancellationToken ct = default)
+        {
+            var result =
+                await _connectionRepository
+                    .SetLastConnectionAsync(
+                        connectionId,
+                        isOnline,
+                        ct);
+
+            if (result)
+            {
+                _logger.LogInformation(
+                    "Updated last connection status for Connection {ConnectionId} to {Status}.",
+                    connectionId,
+                    isOnline ? "Online" : "Offline");
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Failed to update last connection status for Connection {ConnectionId}.",
+                    connectionId);
+            }
+
+            return result;
+        }
+
+        public async Task<int[]> GetConnectionCountAsync(
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            var count =
+                await _connectionRepository
+                    .GetConnectionCountAsync(userId, ct);
+
+            _logger.LogInformation(
+                "Retrieved connection count for User {UserId}: {Total}/{Online}.",
+                userId,
+                count[0],
+                count[1]);
+
+            return count;
+        }
+
+        public async Task<DateTime?> GetLastUserOnlineAsync(
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            var lastOnline =
+                await _connectionRepository
+                    .GetLastUserOnlineAsync(userId, ct);
+
+            _logger.LogInformation(
+                "Get last user {UserId} online: {LastOnline}",
+                userId,
+                lastOnline);
+
+            return lastOnline;
+        }
+
+        public async Task DeleteUnknownConnectionAsync(
+            Guid id,
+            CancellationToken ct = default)
+        {
+            await _connectionRepository
+                .DeleteUnknownConnectionAsync(id, ct);
+
+            _logger.LogInformation(
+                "Deleted unknown Connection {ConnectionId}.",
+                id);
+        }
+
+        public async Task UpdateConnectionAsync(
+            Guid connectionId,
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            await _connectionRepository
+                .UpdateConnectionAsync(
+                    connectionId,
+                    userId,
+                    ct);
+
+            _logger.LogInformation(
+                "Updated Connection {ConnectionId} to User {UserId}.",
+                connectionId,
+                userId);
+        }
+    }
+}

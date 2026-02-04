@@ -1,7 +1,8 @@
-﻿using AIChatWebServer.Services.Context.Implementations;
+﻿using AIChatWebServer.Models.Exceptions;
+using AIChatWebServer.Services.Context.Implementations;
 using AIChatWebServer.Services.Tokens.Consts;
 using AIChatWebServer.Services.Tokens.Interfaces;
-using System.IdentityModel.Tokens.Jwt;
+using AIChatWebServer.Utils.Errors;
 
 namespace AIChatWebServer.Security.Contexts
 {
@@ -13,15 +14,10 @@ namespace AIChatWebServer.Security.Contexts
         {
         }
 
-        public Guid? ConnectionId =>
+        public Guid ConnectionId =>
             Guid.TryParse(TryGetClaimValue("connectionId"), out var guid)
                 ? guid
-                : null;
-
-        public bool IsExpired =>
-            ExpiresAtUtc.HasValue &&
-            ExpiresAtUtc.Value <= DateTime.UtcNow;
-
+                : throw new AuthTokenException(SessionErrors.InvalidToken);
 
         public override JwtTokenType TokenType =>
             JwtTokenType.Work;

@@ -2,6 +2,6 @@
 {
     public interface IEntryTokenContext : ITokenContext
     {
-        string? Code { get; }
+        string Code { get; }
     }
 }

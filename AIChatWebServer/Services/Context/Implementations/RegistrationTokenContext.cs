@@ -1,7 +1,9 @@
-﻿using AIChatWebServer.Models.User;
+﻿using AIChatWebServer.Models.Exceptions;
+using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Implementations;
 using AIChatWebServer.Services.Tokens.Consts;
 using AIChatWebServer.Services.Tokens.Interfaces;
+using AIChatWebServer.Utils.Errors;
 
 namespace AIChatWebServer.Services.Tokens.Implementations
 {
@@ -10,13 +12,13 @@ namespace AIChatWebServer.Services.Tokens.Implementations
     {
         public override JwtTokenType TokenType => JwtTokenType.Registration;
 
-        public RegistrationState? RegistrationState => 
+        public RegistrationState RegistrationState => 
             Enum.TryParse(typeof(RegistrationState), 
                 TryGetClaimValue("registrationState"), out var result) 
-            ? (RegistrationState)result : null;
+            ? (RegistrationState)result : throw new AuthTokenException(SessionErrors.InvalidToken);
 
-        public Guid? ConnectionId => 
+        public Guid ConnectionId => 
             Guid.TryParse(TryGetClaimValue("connectionId"), out var result) 
-            ? result : null;
+            ? result : throw new AuthTokenException(SessionErrors.InvalidToken);
     }
 }

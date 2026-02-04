@@ -7,6 +7,6 @@ namespace AIChatWebServer.Services.Context.Implementations
     {
         public override JwtTokenType TokenType => JwtTokenType.Entry;
 
-        public string? Code => TryGetClaimValue("code");
+        public string Code => TryGetClaimValue("code");
     }
 }

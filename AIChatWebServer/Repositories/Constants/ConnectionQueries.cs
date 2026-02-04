@@ -25,7 +25,7 @@
               AND device = @Device;";
 
         public const string RemoveConnection =
-            "UPDATE connections SET user_id = NULL WHERE id = @Id";
+            "DELETE FROM connections WHERE id = @Id";
 
         public const string SetLastConnectionOnline =
             "UPDATE connections SET last_connection = NULL WHERE id = @ConnectionId";

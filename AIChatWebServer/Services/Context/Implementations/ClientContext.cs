@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.Services.Context.Interfaces;
+using Microsoft.Extensions.Primitives;
 
 namespace AIChatWebServer.Services.Context.Implementations
 {
@@ -40,14 +41,29 @@ namespace AIChatWebServer.Services.Context.Implementations
                 if (context == null)
                     return null;
 
-                if (!context.Request.Headers.TryGetValue(LanguageHeaderName, out var value))
+                if (!context.Request.Headers.TryGetValue(LanguageHeaderName, out StringValues value))
                     return null;
 
-                var languages = value.ToString().Split(',');
+                var rawLanguages = value.ToString();
 
-                return languages.Length > 0
-                    ? languages[0].Trim()
-                    : null;
+                if (string.IsNullOrWhiteSpace(rawLanguages))
+                    return null;
+
+                var firstLanguage = rawLanguages
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Split(';')[0].Trim())
+                    .FirstOrDefault();
+
+                if (string.IsNullOrWhiteSpace(firstLanguage))
+                    return null;
+
+                var languageCode = firstLanguage
+                    .Split('-', StringSplitOptions.RemoveEmptyEntries)
+                    .FirstOrDefault();
+
+                return string.IsNullOrWhiteSpace(languageCode)
+                    ? null
+                    : languageCode.ToLowerInvariant();
             }
         }
 

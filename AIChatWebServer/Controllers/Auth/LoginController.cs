@@ -6,7 +6,7 @@ using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Errors;
-using AIChatWebServer.Utils.Interfaces;
+using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChatWebServer.Controllers.Auth

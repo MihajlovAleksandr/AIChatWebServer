@@ -1,5 +1,7 @@
-﻿using AIChatWebServer.Services.Context.Interfaces;
+﻿using AIChatWebServer.Models.Exceptions;
+using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Tokens.Consts;
+using AIChatWebServer.Utils.Errors;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -11,18 +13,18 @@ namespace AIChatWebServer.Services.Context.Implementations
         protected readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor
                 ?? throw new ArgumentNullException(nameof(httpContextAccessor));
 
-        public Guid? UserId =>
+        public Guid UserId =>
             Guid.TryParse(TryGetClaimValue(ClaimTypes.NameIdentifier), out var guid)
                 ? guid
-                : null;
-        public DateTime? ExpiresAtUtc
+                : throw new AuthTokenException(SessionErrors.InvalidToken);
+        public DateTime ExpiresAtUtc
         {
             get
             {
                 var value = TryGetClaimValue(JwtRegisteredClaimNames.Exp);
 
                 if (!long.TryParse(value, out var seconds))
-                    return null;
+                    throw new AuthTokenException(SessionErrors.InvalidToken);
 
                 return DateTimeOffset
                     .FromUnixTimeSeconds(seconds)
@@ -31,12 +33,12 @@ namespace AIChatWebServer.Services.Context.Implementations
         }
         public abstract JwtTokenType TokenType { get; }
 
-        protected string? TryGetClaimValue(string claimType)
+        protected string TryGetClaimValue(string claimType)
         {
             return _httpContextAccessor.HttpContext?
                 .User?
                 .FindFirst(claimType)?
-                .Value;
+                .Value ?? throw new AuthTokenException(SessionErrors.InvalidToken);
         }
     }
 }

@@ -4,6 +4,6 @@ namespace AIChatWebServer.Services.Tokens.Interfaces
 {
     public interface IWorkTokenContext : ITokenContext
     {
-        Guid? ConnectionId { get; }
+        Guid ConnectionId { get; }
     }
 }

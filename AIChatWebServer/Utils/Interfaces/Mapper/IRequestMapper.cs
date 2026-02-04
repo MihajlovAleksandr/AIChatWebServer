@@ -1,4 +1,4 @@
-﻿namespace AIChatWebServer.Utils.Interfaces
+﻿namespace AIChatWebServer.Utils.Interfaces.Mapper
 {
     public interface IRequestMapper<TRequest, TModel>
     {

@@ -7,6 +7,7 @@ using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Interfaces;
+using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChatWebServer.Controllers.Auth
@@ -90,7 +91,7 @@ namespace AIChatWebServer.Controllers.Auth
                         oauthUser.Email,
                         oauthUser.Id,
                         _regionGetter.GetCountryCode(context.IpAddress!),
-                        context.LanguageCode!,
+                        context.LanguageCode,
                         ct);
 
 

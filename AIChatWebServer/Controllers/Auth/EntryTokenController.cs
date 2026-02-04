@@ -27,7 +27,7 @@ namespace AIChatWebServer.Controllers.Auth
             [FromServices] IClientContext clientContext,
             CancellationToken ct)
         {
-            if (!IsValidGenerateContext(workContext, clientContext))
+            if (clientContext.Device == null)
             {
                 return Unauthorized(
                     ApiError.Create(CodeErrors.ContextInvalid));
@@ -35,8 +35,8 @@ namespace AIChatWebServer.Controllers.Auth
 
             bool verified =
                 await _connectionService.VerifyConnectionAsync(
-                    workContext.ConnectionId!.Value,
-                    workContext.UserId!.Value,
+                    workContext.ConnectionId,
+                    workContext.UserId,
                     clientContext.Device!,
                     ct);
 
@@ -50,7 +50,7 @@ namespace AIChatWebServer.Controllers.Auth
             {
                 string code =
                     await _entryCodeService.GenerateAsync(
-                        workContext.UserId!.Value,
+                        workContext.UserId,
                         ct);
 
                 return Ok(code);
@@ -69,12 +69,6 @@ namespace AIChatWebServer.Controllers.Auth
             [FromServices] IClientContext clientContext,
             CancellationToken ct)
         {
-            if (!entryContext.UserId.HasValue ||
-                string.IsNullOrWhiteSpace(entryContext.Code))
-            {
-                return Unauthorized(
-                    ApiError.Create(CodeErrors.ContextInvalid));
-            }
 
             if (string.IsNullOrWhiteSpace(clientContext.Device))
             {
@@ -85,8 +79,8 @@ namespace AIChatWebServer.Controllers.Auth
             try
             {
                 await _entryCodeService.VerifyAsync(
-                    entryContext.UserId.Value,
-                    entryContext.Code!,
+                    entryContext.UserId,
+                    entryContext.Code,
                     ct);
             }
             catch (InvalidVerificationCodeException)
@@ -119,13 +113,13 @@ namespace AIChatWebServer.Controllers.Auth
             {
                 Guid connectionId =
                     await _connectionService.AddConnectionAsync(
-                        clientContext.Device!,
-                        entryContext.UserId.Value,
+                        clientContext.Device,
+                        entryContext.UserId,
                         ct);
 
                 return Ok(
                     _workTokenFactory.Create(
-                        entryContext.UserId.Value,
+                        entryContext.UserId,
                         connectionId));
             }
             catch
@@ -134,15 +128,6 @@ namespace AIChatWebServer.Controllers.Auth
                     StatusCodes.Status500InternalServerError,
                     ApiError.Create(CommonErrors.InternalError));
             }
-        }
-
-        private static bool IsValidGenerateContext(
-            IWorkTokenContext workContext,
-            IClientContext clientContext)
-        {
-            return workContext.UserId.HasValue
-                   && workContext.ConnectionId.HasValue
-                   && !string.IsNullOrWhiteSpace(clientContext.Device);
         }
     }
 }

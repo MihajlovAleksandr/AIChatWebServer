@@ -1,6 +1,6 @@
 ﻿using AIChatWebServer.DTO.Request;
 using AIChatWebServer.Models.User;
-using AIChatWebServer.Utils.Interfaces;
+using AIChatWebServer.Utils.Interfaces.Mapper;
 
 namespace AIChatWebServer.Utils.Implementations.Mappers
 {

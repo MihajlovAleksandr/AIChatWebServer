@@ -8,6 +8,7 @@ using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Interfaces;
+using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChatWebServer.Controllers.Auth
@@ -110,9 +111,6 @@ namespace AIChatWebServer.Controllers.Auth
             if (request == null)
                 return BadRequest(ApiError.Create(CommonErrors.RequestBodyEmpty));
 
-            if (!context.UserId.HasValue || !context.ConnectionId.HasValue)
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidContext));
-
             if (!await ValidateStepAsync(context,RegistrationState.Created, ct))
                 return Unauthorized(ApiError.Create(RegisterErrors.InvalidStep));
 
@@ -122,17 +120,17 @@ namespace AIChatWebServer.Controllers.Auth
             try
             {
                 await _emailVerificationService.VerifyAsync(
-                    context.UserId.Value,
+                    context.UserId,
                     request.Code,
                     ct);
 
                 await _registrationService.MarkEmailVerifiedAsync(
-                    context.UserId.Value,
+                    context.UserId,
                     ct);
 
                 return NextStep(
-                    context.UserId.Value,
-                    context.ConnectionId.Value,
+                    context.UserId,
+                    context.ConnectionId,
                     RegistrationState.EmailVerified);
             }
             catch (InvalidVerificationCodeException)
@@ -168,9 +166,6 @@ namespace AIChatWebServer.Controllers.Auth
             if (request == null)
                 return BadRequest(ApiError.Create(CommonErrors.RequestBodyEmpty));
 
-            if (!context.UserId.HasValue || !context.ConnectionId.HasValue)
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidContext));
-
             if (!await ValidateStepAsync(context, RegistrationState.EmailVerified, ct))
                 return Unauthorized(ApiError.Create(RegisterErrors.InvalidStep));
 
@@ -180,13 +175,13 @@ namespace AIChatWebServer.Controllers.Auth
                     _userDataMapper.ToModel(request);
 
                 await _registrationService.AddUserDataAsync(
-                    context.UserId.Value,
+                    context.UserId,
                     model,
                     ct);
 
                 return NextStep(
-                    context.UserId.Value,
-                    context.ConnectionId.Value,
+                    context.UserId,
+                    context.ConnectionId,
                     RegistrationState.UserDataCompleted);
             }
             catch
@@ -206,9 +201,6 @@ namespace AIChatWebServer.Controllers.Auth
             if (request == null)
                 return BadRequest(ApiError.Create(CommonErrors.RequestBodyEmpty));
 
-            if (!context.UserId.HasValue || !context.ConnectionId.HasValue)
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidContext));
-
             if (!await ValidateStepAsync(context, RegistrationState.UserDataCompleted, ct))
                 return Unauthorized(ApiError.Create(RegisterErrors.InvalidStep));
 
@@ -218,18 +210,18 @@ namespace AIChatWebServer.Controllers.Auth
                     _preferenceMapper.ToModel(request);
 
                 await _registrationService.AddPreferenceAsync(
-                    context.UserId.Value,
+                    context.UserId,
                     pref,
                     ct);
 
                 await _registrationService.CompleteRegistrationAsync(
-                    context.UserId.Value,
+                    context.UserId,
                     ct);
 
                 return Ok(
                     _workTokenFactory.Create(
-                        context.UserId.Value,
-                        context.ConnectionId.Value));
+                        context.UserId,
+                        context.ConnectionId));
             }
             catch
             {
@@ -246,7 +238,7 @@ namespace AIChatWebServer.Controllers.Auth
         {
             RegistrationState realState =
                 await _registrationService.GetRegistrationStateAsync(
-                    context.UserId!.Value,
+                    context.UserId,
                     ct);
 
             if (realState != context.RegistrationState)
@@ -260,8 +252,6 @@ namespace AIChatWebServer.Controllers.Auth
 
             return true;
         }
-
-
 
         private IActionResult NextStep(
             Guid userId,

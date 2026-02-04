@@ -2,6 +2,7 @@
 using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Errors;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChatWebServer.Controllers.Auth
@@ -28,18 +29,10 @@ namespace AIChatWebServer.Controllers.Auth
                     ApiError.Create(CommonErrors.DeviceMissing));
             }
 
-            if (!tokenContext.UserId.HasValue ||
-                !tokenContext.ConnectionId.HasValue ||
-                !tokenContext.ExpiresAtUtc.HasValue)
-            {
-                return Unauthorized(
-                    ApiError.Create(SessionErrors.InvalidToken));
-            }
-
             bool verified =
                 await _connectionService.VerifyConnectionAsync(
-                    tokenContext.ConnectionId.Value,
-                    tokenContext.UserId.Value,
+                    tokenContext.ConnectionId,
+                    tokenContext.UserId,
                     clientContext.Device,
                     ct);
 
@@ -50,7 +43,7 @@ namespace AIChatWebServer.Controllers.Auth
             }
 
             bool needRefresh =
-                tokenContext.ExpiresAtUtc.Value <
+                tokenContext.ExpiresAtUtc <
                 DateTime.UtcNow.AddDays(5);
 
 
@@ -67,8 +60,8 @@ namespace AIChatWebServer.Controllers.Auth
 
             string newToken =
                 _workTokenFactory.Create(
-                    tokenContext.UserId.Value,
-                    tokenContext.ConnectionId.Value);
+                    tokenContext.UserId,
+                    tokenContext.ConnectionId);
 
 
             return Ok(new
@@ -79,6 +72,27 @@ namespace AIChatWebServer.Controllers.Auth
                 tokenContext.ConnectionId,
                 tokenContext.UserId
             });
+        }
+        [Authorize]
+        [HttpDelete("{connectionId}")]
+        public async Task<IActionResult> DeleteConnection(Guid connectionId, IWorkTokenContext tokenContext)
+        {
+            Models.Connection.ConnectionInfo? connectionInfo = await _connectionService.GetConnectionInfoAsync(connectionId);
+            if (connectionInfo == null)
+            {
+                return NotFound(
+                    ApiError.Create(SessionErrors.ConnectionNotFound));
+            }
+
+            if (connectionInfo.UserId != tokenContext.UserId)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiError.Create(SessionErrors.ConnectionForbidden));
+            }
+
+            await _connectionService.RemoveConnectionAsync(connectionId);
+            return Ok();
         }
     }
 }

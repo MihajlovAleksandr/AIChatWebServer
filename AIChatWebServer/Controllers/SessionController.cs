@@ -5,16 +5,18 @@ using AIChatWebServer.Utils.Errors;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AIChatWebServer.Controllers.Auth
+namespace AIChatWebServer.Controllers
 {
     [ApiController]
-    [Route("api/auth/session")]
+    [Route("api/session")]
     public sealed class SessionController(
         IConnectionService connectionService,
+        IConnectionValidator connectionValidator,
         IWorkTokenFactory workTokenFactory)
         : ControllerBase
     {
         private readonly IConnectionService _connectionService = connectionService;
+        private readonly IConnectionValidator _connectionValidator = connectionValidator;
         private readonly IWorkTokenFactory _workTokenFactory = workTokenFactory;
 
         [HttpGet("connect")]
@@ -29,18 +31,7 @@ namespace AIChatWebServer.Controllers.Auth
                     ApiError.Create(CommonErrors.DeviceMissing));
             }
 
-            bool verified =
-                await _connectionService.VerifyConnectionAsync(
-                    tokenContext.ConnectionId,
-                    tokenContext.UserId,
-                    clientContext.Device,
-                    ct);
-
-            if (!verified)
-            {
-                return Unauthorized(
-                    ApiError.Create(SessionErrors.InvalidConnection));
-            }
+            await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, ct); 
 
             bool needRefresh =
                 tokenContext.ExpiresAtUtc <

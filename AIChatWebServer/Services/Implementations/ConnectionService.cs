@@ -43,14 +43,12 @@ namespace AIChatWebServer.Services.Implementations
 
         public async Task<Models.Connection.ConnectionInfo?> GetConnectionInfoAsync(
             Guid connectionId,
-            Guid defaultUserId = default,
             CancellationToken ct = default)
         {
             var info =
                 await _connectionRepository
                     .GetConnectionInfoAsync(
                         connectionId,
-                        defaultUserId,
                         ct);
 
             if (info == null)
@@ -84,50 +82,6 @@ namespace AIChatWebServer.Services.Implementations
 
             return connections;
         }
-
-        public async Task<bool> VerifyConnectionAsync(
-            Guid id,
-            Guid userId,
-            string device,
-            CancellationToken ct = default)
-        {
-            if (string.IsNullOrWhiteSpace(device))
-            {
-                _logger.LogWarning(
-                    "Attempt to verify connection with empty device name for User {UserId}.",
-                    userId);
-
-                throw new ArgumentException(
-                    "Device cannot be null or empty",
-                    nameof(device));
-            }
-
-            var verified =
-                await _connectionRepository
-                    .VerifyConnectionAsync(
-                        id,
-                        userId,
-                        device,
-                        ct);
-
-            if (verified)
-            {
-                _logger.LogInformation(
-                    "Connection {ConnectionId} for User {UserId} verified.",
-                    id,
-                    userId);
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "Failed to verify Connection {ConnectionId} for User {UserId}.",
-                    id,
-                    userId);
-            }
-
-            return verified;
-        }
-
 
         public async Task<Models.Connection.ConnectionInfo?> RemoveConnectionAsync(
             Guid id,
@@ -180,51 +134,6 @@ namespace AIChatWebServer.Services.Implementations
             }
 
             return result;
-        }
-
-        public async Task<int[]> GetConnectionCountAsync(
-            Guid userId,
-            CancellationToken ct = default)
-        {
-            var count =
-                await _connectionRepository
-                    .GetConnectionCountAsync(userId, ct);
-
-            _logger.LogInformation(
-                "Retrieved connection count for User {UserId}: {Total}/{Online}.",
-                userId,
-                count[0],
-                count[1]);
-
-            return count;
-        }
-
-        public async Task<DateTime?> GetLastUserOnlineAsync(
-            Guid userId,
-            CancellationToken ct = default)
-        {
-            var lastOnline =
-                await _connectionRepository
-                    .GetLastUserOnlineAsync(userId, ct);
-
-            _logger.LogInformation(
-                "Get last user {UserId} online: {LastOnline}",
-                userId,
-                lastOnline);
-
-            return lastOnline;
-        }
-
-        public async Task DeleteUnknownConnectionAsync(
-            Guid id,
-            CancellationToken ct = default)
-        {
-            await _connectionRepository
-                .DeleteUnknownConnectionAsync(id, ct);
-
-            _logger.LogInformation(
-                "Deleted unknown Connection {ConnectionId}.",
-                id);
         }
 
         public async Task UpdateConnectionAsync(

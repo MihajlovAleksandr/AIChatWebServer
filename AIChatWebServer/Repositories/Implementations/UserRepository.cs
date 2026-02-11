@@ -85,13 +85,15 @@ namespace AIChatWebServer.Repositories.Implementations
             }
         }
 
-        public Task MarkEmailVerifiedAsync(
+        public Task UpdateRegistrationStateAsync(
             Guid userId,
+            RegistrationState state,
             CancellationToken ct = default) =>
             ExecuteAsync(
-                UserQueries.MarkEmailVerified,
+                UserQueries.UpdateRegistrationState,
                 ct,
-                ("@userId", userId));
+                ("@userId", userId),
+                ("@state", (int)state));
 
         public Task SaveUserDataAsync(
             Guid userId,
@@ -118,14 +120,6 @@ namespace AIChatWebServer.Repositories.Implementations
                 ("@minAge", pref.MinAge),
                 ("@maxAge", pref.MaxAge),
                 ("@preferredGender", pref.Gender.ToString()));
-
-        public Task CompleteRegistrationAsync(
-            Guid userId,
-            CancellationToken ct = default) =>
-            ExecuteAsync(
-                UserQueries.CompleteRegistration,
-                ct,
-                ("@userId", userId));
 
         public Task UpdateAsync(
             User user,

@@ -1,10 +1,9 @@
-﻿using AIChatWebServer.Models.Exceptions;
-using AIChatWebServer.Services.Context.Implementations;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
 using AIChatWebServer.Services.Tokens.Consts;
 using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Errors;
 
-namespace AIChatWebServer.Security.Contexts
+namespace AIChatWebServer.Services.Context.Implementations
 {
     internal sealed class WorkTokenContext
         : BaseTokenContext, IWorkTokenContext

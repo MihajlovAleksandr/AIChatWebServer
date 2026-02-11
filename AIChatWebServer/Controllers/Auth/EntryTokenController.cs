@@ -1,4 +1,4 @@
-﻿using AIChatWebServer.Models.Exceptions;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth.VerificationCode;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Tokens.Interfaces;
@@ -12,11 +12,13 @@ namespace AIChatWebServer.Controllers.Auth
     [Route("api/auth/code")]
     public sealed class EntryTokenController(
         IConnectionService connectionService,
+        IConnectionValidator connectionValidator,
         IEntryCodeService entryCodeService,
         IWorkTokenFactory workTokenFactory)
         : ControllerBase
     {
         private readonly IConnectionService _connectionService = connectionService;
+        private readonly IConnectionValidator _connectionValidator = connectionValidator;
         private readonly IEntryCodeService _entryCodeService = entryCodeService;
         private readonly IWorkTokenFactory _workTokenFactory = workTokenFactory;
 
@@ -32,20 +34,11 @@ namespace AIChatWebServer.Controllers.Auth
                 return Unauthorized(
                     ApiError.Create(CodeErrors.ContextInvalid));
             }
-
-            bool verified =
-                await _connectionService.VerifyConnectionAsync(
-                    workContext.ConnectionId,
-                    workContext.UserId,
-                    clientContext.Device!,
-                    ct);
-
-            if (!verified)
-            {
-                return Unauthorized(
-                    ApiError.Create(CodeErrors.ConnectionInvalid));
-            }
-
+            await _connectionValidator.ValidateConnectionAsync(
+                workContext.ConnectionId,
+                workContext.UserId,
+                clientContext.Device,
+                ct);
             try
             {
                 string code =

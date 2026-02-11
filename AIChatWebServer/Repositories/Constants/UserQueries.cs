@@ -12,17 +12,11 @@ INSERT INTO auth_identities (id, user_id, provider_code, identifier, secret, cre
 VALUES (@id, @userId, @providerCode, @identifier, @secret, NOW());
 ";
 
-        public const string MarkEmailVerified = @"
-UPDATE users SET registration_state = 1 WHERE id = @userId;
-";
-
         public const string SaveUserData = @"
 INSERT INTO user_data (id, user_id, name, gender, age)
 VALUES (@id, @userId, @name, @gender, @age)
 ON CONFLICT (user_id)
 DO UPDATE SET name=@name, gender=@gender, age=@age;
-
-UPDATE users SET registration_state = 2 WHERE id=@userId;
 ";
 
         public const string SavePreference = @"
@@ -30,11 +24,12 @@ INSERT INTO preferences (id, user_id, min_age, max_age, preferred_gender)
 VALUES (@id, @userId, @minAge, @maxAge, @preferredGender)
 ON CONFLICT (user_id)
 DO UPDATE SET min_age=@minAge, max_age=@maxAge, preferred_gender=@preferredGender;
-
-UPDATE users SET registration_state = 3 WHERE id=@userId;
 ";
-        public const string CompleteRegistration = @"
-UPDATE users SET registration_state = 4 WHERE id=@userId;";
+
+        public const string UpdateRegistrationState = @"
+UPDATE users SET registration_state = @state WHERE id = @userId;
+";
+
 
         public const string SaveLanguage = @"
 INSERT INTO user_languages (id, user_id, context, language_code, last_update)

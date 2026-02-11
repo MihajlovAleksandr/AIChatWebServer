@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.Models.Exceptions;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth.VerificationCode;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 using System.Security.Cryptography;
@@ -54,17 +55,17 @@ namespace AIChatWebServer.Services.Implementations
                     .GetAsync(userId, type, ct) ?? throw new VerificationCodeNotFoundException(userId, type);
 
             if (record.ExpiresAt <= DateTime.UtcNow)
-                throw new VerificationCodeExpiredException(record.ExpiresAt);
+                throw new VerificationCodeExpiredException(record.ExpiresAt, userId);
 
             if (record.Attempts >= MaxAttempts)
-                throw new VerificationCodeAttemptsExceededException(MaxAttempts);
+                throw new VerificationCodeAttemptsExceededException(userId, record.Attempts, MaxAttempts);
 
             if (!_hasher.Verify(code, record.CodeHash))
             {
                 await _repository
                     .IncrementAttemptsAsync(record.Id, ct);
 
-                throw new InvalidVerificationCodeException();
+                throw new InvalidVerificationCodeException(userId);
             }
 
             await _repository

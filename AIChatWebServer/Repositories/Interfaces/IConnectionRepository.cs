@@ -1,6 +1,4 @@
-﻿using AIChatWebServer.Models.Connection;
-
-namespace AIChatWebServer.Repositories.Interfaces
+﻿namespace AIChatWebServer.Repositories.Interfaces
 {
     public interface IConnectionRepository
     {
@@ -11,17 +9,10 @@ namespace AIChatWebServer.Repositories.Interfaces
 
         Task<AIChatWebServer.Models.Connection.ConnectionInfo?> GetConnectionInfoAsync(
             Guid connectionId,
-            Guid defaultUserId = default,
             CancellationToken cancellationToken = default);
 
         Task<IReadOnlyList<AIChatWebServer.Models.Connection.ConnectionInfo>> GetAllUserConnectionsAsync(
             Guid userId,
-            CancellationToken cancellationToken = default);
-
-        Task<bool> VerifyConnectionAsync(
-            Guid id,
-            Guid userId,
-            string device,
             CancellationToken cancellationToken = default);
 
         Task<AIChatWebServer.Models.Connection.ConnectionInfo?> RemoveConnectionAsync(
@@ -33,21 +24,9 @@ namespace AIChatWebServer.Repositories.Interfaces
             bool isOnline,
             CancellationToken cancellationToken = default);
 
-        Task<int[]> GetConnectionCountAsync(
-            Guid userId,
-            CancellationToken cancellationToken = default);
-
-        Task<DateTime?> GetLastUserOnlineAsync(
-            Guid userId,
-            CancellationToken cancellationToken = default);
-
         Task UpdateConnectionAsync(
             Guid connectionId,
             Guid userId,
-            CancellationToken cancellationToken = default);
-
-        Task DeleteUnknownConnectionAsync(
-            Guid id,
             CancellationToken cancellationToken = default);
     }
 }

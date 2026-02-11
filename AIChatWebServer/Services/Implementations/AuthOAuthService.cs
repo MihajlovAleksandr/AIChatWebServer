@@ -1,4 +1,4 @@
-﻿using AIChatWebServer.Models.Exceptions;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;
@@ -68,8 +68,7 @@ namespace AIChatWebServer.Services.Implementations
                             email,
                             _hasher.Hash(googleId)),
                         ct);
-
-                await _repository.MarkEmailVerifiedAsync(userId, ct);
+                await _repository.UpdateRegistrationStateAsync(userId, RegistrationState.EmailVerified, ct);
 
                 return userId;
             }

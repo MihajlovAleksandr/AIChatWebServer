@@ -1,11 +1,11 @@
 ﻿using AIChatWebServer.Models.Exceptions;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth;
 using AIChatWebServer.Models.User;
-using AIChatWebServer.Services.Context.Implementations;
 using AIChatWebServer.Services.Tokens.Consts;
 using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Errors;
 
-namespace AIChatWebServer.Services.Tokens.Implementations
+namespace AIChatWebServer.Services.Context.Implementations
 {
     public class RegistrationTokenContext(IHttpContextAccessor accessor)
                 : BaseTokenContext(accessor), IRegistrationTokenContext

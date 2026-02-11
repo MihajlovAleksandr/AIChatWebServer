@@ -3,7 +3,7 @@ using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Integrations.Email.Implementations;
 using AIChatWebServer.Integrations.Email.Interfaces;
 using AIChatWebServer.Middlewares;
-using AIChatWebServer.Models.Exceptions;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Implementations;
 using AIChatWebServer.Repositories.Interfaces;
@@ -13,12 +13,11 @@ using AIChatWebServer.Services.Implementations;
 using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Tokens.Implementations;
 using AIChatWebServer.Services.Tokens.Interfaces;
-using AIChatWebServer.Utils;
 using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Implementations;
 using AIChatWebServer.Utils.Implementations.Mappers;
 using AIChatWebServer.Utils.Interfaces;
-
+using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -52,6 +51,8 @@ builder.Services.AddScoped<IResponseMapper<UserBan, BanResponse>, BanResponseMap
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
+builder.Services.AddScoped<IResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>, ConnectionResponseMapper>();
+builder.Services.AddScoped<ICollectionResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>, CollectionResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>>();
 
 builder.Services.AddScoped<IHasher, Hasher>();
 
@@ -66,6 +67,8 @@ builder.Services.AddScoped<IOAuthValidator, GoogleAuthValidator>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddScoped<IEntryCodeService, EntryCodeService>();
 builder.Services.AddScoped<IVerificationCodeService, VerificationCodeService>();
+builder.Services.AddScoped<IConnectionValidator, ConnectionValidator>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
@@ -186,7 +189,8 @@ app.UseCors("AllowBrowserClients");
 
 app.UseRouting();
 
-app.UseMiddleware<TokenExceptionMiddleware>();
+app.UseMiddleware<ApiExceptionMiddleware>();
+app.UseMiddleware<UserBanExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,8 +1,9 @@
-﻿using AIChatWebServer.Models.Exceptions;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 using Npgsql;
+using System.Transactions;
 
 namespace AIChatWebServer.Services.Implementations
 {
@@ -40,27 +41,80 @@ namespace AIChatWebServer.Services.Implementations
             }
         }
 
-        public Task MarkEmailVerifiedAsync(
+        public async Task MarkEmailVerifiedAsync(
             Guid userId,
-            CancellationToken ct = default) =>
-            _repository.MarkEmailVerifiedAsync(userId, ct);
+            CancellationToken ct = default)
+        {
+            using var scope =
+                new TransactionScope(
+                    TransactionScopeAsyncFlowOption.Enabled);
 
-        public Task AddUserDataAsync(
+            await _repository.UpdateRegistrationStateAsync(
+                userId,
+                RegistrationState.EmailVerified,
+                ct);
+
+            scope.Complete();
+        }
+
+        public async Task AddUserDataAsync(
             Guid userId,
             UserData data,
-            CancellationToken ct = default) =>
-            _repository.SaveUserDataAsync(userId, data, ct);
+            CancellationToken ct = default)
+        {
+            using var scope =
+                new TransactionScope(
+                    TransactionScopeAsyncFlowOption.Enabled);
 
-        public Task AddPreferenceAsync(
+            await _repository.SaveUserDataAsync(
+                userId,
+                data,
+                ct);
+
+            await _repository.UpdateRegistrationStateAsync(
+                userId,
+                RegistrationState.UserDataCompleted,
+                ct);
+
+            scope.Complete();
+        }
+        public async Task AddPreferenceAsync(
             Guid userId,
             Preference preference,
-            CancellationToken ct = default) =>
-            _repository.SavePreferenceAsync(userId, preference, ct);
+            CancellationToken ct = default)
+        {
+            using var scope =
+                new TransactionScope(
+                    TransactionScopeAsyncFlowOption.Enabled);
 
-        public Task CompleteRegistrationAsync(
+            await _repository.SavePreferenceAsync(
+                userId,
+                preference,
+                ct);
+
+            await _repository.UpdateRegistrationStateAsync(
+                userId,
+                RegistrationState.PreferenceCompleted,
+                ct);
+
+            scope.Complete();
+        }
+
+        public async Task CompleteRegistrationAsync(
             Guid userId,
-            CancellationToken ct = default) =>
-            _repository.CompleteRegistrationAsync(userId, ct);
+            CancellationToken ct = default)
+        {
+            using var scope =
+                new TransactionScope(
+                    TransactionScopeAsyncFlowOption.Enabled);
+
+            await _repository.UpdateRegistrationStateAsync(
+                userId,
+                RegistrationState.Completed,
+                ct);
+
+            scope.Complete();
+        }
 
         public Task<RegistrationState> GetRegistrationStateAsync(
             Guid userId, CancellationToken ct = default) =>

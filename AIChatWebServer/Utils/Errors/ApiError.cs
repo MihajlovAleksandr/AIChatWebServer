@@ -1,14 +1,22 @@
 ﻿namespace AIChatWebServer.Utils.Errors
 {
-    public static class ApiError
+    public sealed class ApiError
     {
-        public static object Create(IErrorCode code)
+        public string Code { get; }
+
+        public object? Data { get; }
+
+        private ApiError(string code, object? data)
         {
-            return new
-            {
-                success = false,
-                error = code.Code
-            };
+            Code = code;
+            Data = data;
+        }
+
+        public static ApiError Create(
+            IErrorCode errorCode,
+            object? data = null)
+        {
+            return new ApiError(errorCode.Code, data);
         }
     }
 }

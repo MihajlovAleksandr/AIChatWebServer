@@ -1,4 +1,5 @@
-﻿using AIChatWebServer.Services.Context.Interfaces;
+﻿using AIChatWebServer.DTO.Request;
+using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Errors;
@@ -11,11 +12,13 @@ namespace AIChatWebServer.Controllers
     [Route("api/session")]
     public sealed class SessionController(
         IConnectionService connectionService,
+        INotificationService notificationService,
         IConnectionValidator connectionValidator,
         IWorkTokenFactory workTokenFactory)
         : ControllerBase
     {
         private readonly IConnectionService _connectionService = connectionService;
+        private readonly INotificationService _notificationService = notificationService;
         private readonly IConnectionValidator _connectionValidator = connectionValidator;
         private readonly IWorkTokenFactory _workTokenFactory = workTokenFactory;
 
@@ -66,9 +69,11 @@ namespace AIChatWebServer.Controllers
         }
         [Authorize]
         [HttpDelete("{connectionId}")]
-        public async Task<IActionResult> DeleteConnection(Guid connectionId, IWorkTokenContext tokenContext)
+        public async Task<IActionResult> DeleteConnection(Guid connectionId, [FromServices]IWorkTokenContext tokenContext, [FromServices]IClientContext clientContext, CancellationToken ct)
         {
-            Models.Connection.ConnectionInfo? connectionInfo = await _connectionService.GetConnectionInfoAsync(connectionId);
+            await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, ct);
+
+            Models.Connection.ConnectionInfo? connectionInfo = await _connectionService.GetConnectionInfoAsync(connectionId, ct);
             if (connectionInfo == null)
             {
                 return NotFound(
@@ -82,7 +87,20 @@ namespace AIChatWebServer.Controllers
                     ApiError.Create(SessionErrors.ConnectionForbidden));
             }
 
-            await _connectionService.RemoveConnectionAsync(connectionId);
+            await _connectionService.RemoveConnectionAsync(connectionId, ct);
+            return Ok();
+        }
+
+        [Authorize]
+        [HttpPut("token")]
+        public async Task<IActionResult> UpdateNotificationToken([FromServices]IWorkTokenContext workTokenContext,
+            [FromServices]IClientContext clientContext, [FromBody]NotificationTokenRequest notificationTokenRequest,
+            CancellationToken ct)
+        {
+            await _connectionValidator.ValidateConnectionAsync(workTokenContext.ConnectionId, workTokenContext.UserId, clientContext.Device, ct);
+
+            await _notificationService.UpdateNotificationTokenAsync(workTokenContext.ConnectionId, notificationTokenRequest.Token, ct);
+
             return Ok();
         }
     }

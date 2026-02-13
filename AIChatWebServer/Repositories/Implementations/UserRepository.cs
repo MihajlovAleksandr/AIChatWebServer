@@ -68,6 +68,13 @@ namespace AIChatWebServer.Repositories.Implementations
 
                 await langCmd.ExecuteNonQueryAsync(cancellationToken);
 
+                await using var notificationCmd =
+                    new NpgsqlCommand(UserQueries.AddNotifications, conn, tx);
+
+                notificationCmd.Parameters.AddWithValue("@UserId", userId);
+
+                await notificationCmd.ExecuteNonQueryAsync(cancellationToken);
+
                 await tx.CommitAsync(cancellationToken);
 
                 return userId;

@@ -12,6 +12,9 @@ INSERT INTO auth_identities (id, user_id, provider_code, identifier, secret, cre
 VALUES (@id, @userId, @providerCode, @identifier, @secret, NOW());
 ";
 
+        public const string AddNotifications =
+    "INSERT INTO user_notification_settings(user_id, enabled_email_notifications) VALUES (@UserId, true)";
+
         public const string SaveUserData = @"
 INSERT INTO user_data (id, user_id, name, gender, age)
 VALUES (@id, @userId, @name, @gender, @age)

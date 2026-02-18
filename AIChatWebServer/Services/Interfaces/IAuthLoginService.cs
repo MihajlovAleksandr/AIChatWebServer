@@ -4,7 +4,7 @@ namespace AIChatWebServer.Services.Interfaces
 {
     public interface IAuthLoginService
     {
-        Task<User?> LoginAsync(
+        Task<User> LoginAsync(
             string identifier,
             string secret,
             string providerCode,

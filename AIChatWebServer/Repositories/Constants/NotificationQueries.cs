@@ -17,7 +17,7 @@
 
         public const string GetNotificationTokens = @"
             SELECT user_id, notification_token
-        FROM connections
-        WHERE user_id = ANY(@ids)";
+            FROM connections
+            WHERE user_id = ANY(@ids)";
     }
 }

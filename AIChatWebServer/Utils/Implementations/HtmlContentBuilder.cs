@@ -2,7 +2,7 @@
 
 namespace AIChatWebServer.Utils.Implementations
 {
-    public class HtmlContentBuilder : IHtmlContentBuilder
+    public sealed class HtmlContentBuilder : IHtmlContentBuilder
     {
         private readonly IStringChanger _stringChanger;
 

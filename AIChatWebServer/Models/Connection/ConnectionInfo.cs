@@ -1,6 +1,6 @@
 ﻿namespace AIChatWebServer.Models.Connection
 {
-    public class ConnectionInfo(Guid id, Guid userId, string device, DateTime? lastOnline)
+    public sealed class ConnectionInfo(Guid id, Guid userId, string device, DateTime? lastOnline)
     {
         public Guid Id { get { return id; } }
         public Guid UserId { get { return userId; } }

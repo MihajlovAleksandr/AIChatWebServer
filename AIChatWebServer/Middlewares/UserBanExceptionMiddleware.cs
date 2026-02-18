@@ -6,7 +6,7 @@ using AIChatWebServer.Utils.Interfaces.Mapper;
 
 namespace AIChatWebServer.Middlewares
 {
-    public class UserBanExceptionMiddleware(
+    public sealed class UserBanExceptionMiddleware(
         RequestDelegate next,
         ILogger<UserBanExceptionMiddleware> logger)
     {

@@ -2,14 +2,10 @@
 
 namespace AIChatWebServer.Models.Exceptions.Implementations.Auth.VerificationCode
 {
-    public sealed class VerificationCodeExpiredException : ApiExceptionBase
+    public sealed class VerificationCodeExpiredException(DateTime expiredAt, Guid userId) : ApiExceptionBase(
+            400,
+            RegisterErrors.CodeExpired,
+            $"Verification code for user {userId} expired at {expiredAt:O}")
     {
-        public VerificationCodeExpiredException(DateTime expiredAt, Guid userId)
-            : base(
-                400,
-                RegisterErrors.CodeExpired,
-                $"Verification code for user {userId} expired at {expiredAt:O}")
-        {
-        }
     }
 }

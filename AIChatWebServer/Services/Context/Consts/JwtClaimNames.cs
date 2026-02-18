@@ -1,4 +1,4 @@
-﻿namespace AIChatWebServer.Services.Tokens.Consts
+﻿namespace AIChatWebServer.Services.Context.Consts
 {
     public static class JwtClaimNames
     {

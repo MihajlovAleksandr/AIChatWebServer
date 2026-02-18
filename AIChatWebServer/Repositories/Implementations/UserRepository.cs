@@ -248,11 +248,7 @@ namespace AIChatWebServer.Repositories.Implementations
             if (!await r.ReadAsync(ct))
                 throw new InvalidOperationException();
 
-            return new Region
-            {
-                Code = r.GetString(0),
-                Name = r.GetString(1)
-            };
+            return new Region(r.GetString(0), r.GetString(1), r.GetString(2));
         }
 
         public async Task<UserBan?> GetUserBanByIdAsync(

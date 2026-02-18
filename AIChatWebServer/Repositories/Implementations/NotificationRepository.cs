@@ -2,7 +2,6 @@
 using AIChatWebServer.Models.Exceptions.Implementations.Notification;
 using AIChatWebServer.Repositories.Constants;
 using AIChatWebServer.Repositories.Interfaces;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
 

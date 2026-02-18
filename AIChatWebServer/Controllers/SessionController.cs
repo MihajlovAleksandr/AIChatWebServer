@@ -1,8 +1,8 @@
 ﻿using AIChatWebServer.DTO.Request;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth;
+using AIChatWebServer.Models.Exceptions.Implementations.Connection;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
-using AIChatWebServer.Services.Tokens.Interfaces;
-using AIChatWebServer.Utils.Errors;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,12 +28,6 @@ namespace AIChatWebServer.Controllers
             [FromServices] IClientContext clientContext,
             CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(clientContext.Device))
-            {
-                return BadRequest(
-                    ApiError.Create(CommonErrors.DeviceMissing));
-            }
-
             await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, ct); 
 
             bool needRefresh =
@@ -69,22 +63,21 @@ namespace AIChatWebServer.Controllers
         }
         [Authorize]
         [HttpDelete("{connectionId}")]
-        public async Task<IActionResult> DeleteConnection(Guid connectionId, [FromServices]IWorkTokenContext tokenContext, [FromServices]IClientContext clientContext, CancellationToken ct)
+        public async Task<IActionResult> DeleteConnection(
+            Guid connectionId,
+            [FromServices]IWorkTokenContext tokenContext,
+            [FromServices]IClientContext clientContext,
+            CancellationToken ct)
         {
             await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, ct);
 
-            Models.Connection.ConnectionInfo? connectionInfo = await _connectionService.GetConnectionInfoAsync(connectionId, ct);
-            if (connectionInfo == null)
-            {
-                return NotFound(
-                    ApiError.Create(SessionErrors.ConnectionNotFound));
-            }
+            Models.Connection.ConnectionInfo connectionInfo = await _connectionService.GetConnectionInfoAsync(connectionId, ct);
 
             if (connectionInfo.UserId != tokenContext.UserId)
             {
-                return StatusCode(
-                    StatusCodes.Status403Forbidden,
-                    ApiError.Create(SessionErrors.ConnectionForbidden));
+                throw new UserMismatchException(
+                    connectionInfo.UserId,
+                    tokenContext.UserId);
             }
 
             await _connectionService.RemoveConnectionAsync(connectionId, ct);
@@ -93,8 +86,10 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpPut("token")]
-        public async Task<IActionResult> UpdateNotificationToken([FromServices]IWorkTokenContext workTokenContext,
-            [FromServices]IClientContext clientContext, [FromBody]NotificationTokenRequest notificationTokenRequest,
+        public async Task<IActionResult> UpdateNotificationToken(
+            [FromServices]IWorkTokenContext workTokenContext,
+            [FromServices]IClientContext clientContext,
+            [FromBody]NotificationTokenRequest notificationTokenRequest,
             CancellationToken ct)
         {
             await _connectionValidator.ValidateConnectionAsync(workTokenContext.ConnectionId, workTokenContext.UserId, clientContext.Device, ct);

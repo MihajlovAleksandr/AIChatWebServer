@@ -4,7 +4,7 @@ using AIChatWebServer.Utils.Interfaces.Mapper;
 
 namespace AIChatWebServer.Utils.Implementations.Mappers
 {
-    public class PreferenceMapper : IRequestMapper<PreferenceRequest, Preference>
+    public sealed class PreferenceMapper : IRequestMapper<PreferenceRequest, Preference>
     {
         public Preference ToModel(PreferenceRequest request)
         {

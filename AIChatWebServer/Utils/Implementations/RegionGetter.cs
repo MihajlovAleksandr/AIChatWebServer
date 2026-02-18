@@ -2,7 +2,7 @@
 
 namespace AIChatWebServer.Utils.Implementations
 {
-    public class RegionGetter : IRegionGetter
+    public sealed class RegionGetter : IRegionGetter
     {
         private readonly IGeoIpService _geoIpService;
         private readonly HashSet<string> _explicitCountryCodes;

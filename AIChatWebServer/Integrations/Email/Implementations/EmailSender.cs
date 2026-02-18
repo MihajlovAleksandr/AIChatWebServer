@@ -7,7 +7,7 @@ using MimeKit;
 
 namespace AIChatWebServer.Integrations.Email.Implementations
 {
-    public class EmailSender : IEmailSender
+    public sealed class EmailSender : IEmailSender
     {
         private readonly string _smtpServer;
         private readonly int _port;

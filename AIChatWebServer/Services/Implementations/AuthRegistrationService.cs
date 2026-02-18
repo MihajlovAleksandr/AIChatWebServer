@@ -1,4 +1,4 @@
-﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth.Register;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;

@@ -1,19 +1,14 @@
 ﻿using AIChatWebServer.Models.User;
-using AIChatWebServer.Services.Tokens.Consts;
-using AIChatWebServer.Services.Tokens.Interfaces;
+using AIChatWebServer.Services.Context.Consts;
+using AIChatWebServer.Services.Context.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
-namespace AIChatWebServer.Services.Tokens.Implementations
+namespace AIChatWebServer.Services.Context.Implementations
 {
-    public sealed class RegistrationTokenFactory : IRegistrationTokenFactory
+    public sealed class RegistrationTokenFactory(IJwtTokenGenerator jwt) : IRegistrationTokenFactory
     {
-        private readonly IJwtTokenGenerator _jwt;
-
-        public RegistrationTokenFactory(IJwtTokenGenerator jwt)
-        {
-            _jwt = jwt;
-        }
+        private readonly IJwtTokenGenerator _jwt = jwt;
 
         public string Create(Guid userId, Guid connectionId, RegistrationState registrationState)
         {

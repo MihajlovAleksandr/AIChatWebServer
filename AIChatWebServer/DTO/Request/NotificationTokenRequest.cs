@@ -2,8 +2,9 @@
 
 namespace AIChatWebServer.DTO.Request
 {
-    public record NotificationTokenRequest
-    (
-        [property: JsonPropertyName("token")] string Token
-    );
+    public sealed record NotificationTokenRequest
+    {
+        [JsonPropertyName("token")]
+        public required string Token { get; init; }
+    }
 }

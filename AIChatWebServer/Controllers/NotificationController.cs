@@ -3,7 +3,6 @@ using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Models.Notification;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
-using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,9 +20,10 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpPut("settings")]
-        public async Task<IActionResult> UpdateNotificationSettings([FromServices] IWorkTokenContext tokenContext, 
-            [FromServices]IClientContext clientContext, 
-            [FromBody]NotificationSettingsRequest notificationSettingsRequest,
+        public async Task<IActionResult> UpdateNotificationSettings(
+            [FromServices] IWorkTokenContext tokenContext, 
+            [FromServices] IClientContext clientContext, 
+            [FromBody] NotificationSettingsRequest notificationSettingsRequest,
             CancellationToken ct)
         {
             await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, ct);
@@ -37,9 +37,10 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpGet("settings")]
-        public async Task<IActionResult> NotificationSettings([FromServices] IWorkTokenContext tokenContext,
-        [FromServices] IClientContext clientContext,
-        CancellationToken ct)
+        public async Task<IActionResult> NotificationSettings(
+            [FromServices] IWorkTokenContext tokenContext,
+            [FromServices] IClientContext clientContext,
+            CancellationToken ct)
         {
             await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, ct);
 

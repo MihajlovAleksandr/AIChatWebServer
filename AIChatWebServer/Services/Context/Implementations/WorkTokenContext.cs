@@ -1,6 +1,6 @@
 ﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
-using AIChatWebServer.Services.Tokens.Consts;
-using AIChatWebServer.Services.Tokens.Interfaces;
+using AIChatWebServer.Services.Context.Consts;
+using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Utils.Errors;
 
 namespace AIChatWebServer.Services.Context.Implementations

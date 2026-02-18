@@ -5,7 +5,7 @@ using AIChatWebServer.Utils.Interfaces.Mapper;
 
 namespace AIChatWebServer.Utils.Implementations.Mappers
 {
-    public class NotificationSettingsMapper : IMapper<NotificationSettingsRequest, NotificationSettings, NotificationSettingsResponse>
+    public sealed class NotificationSettingsMapper : IMapper<NotificationSettingsRequest, NotificationSettings, NotificationSettingsResponse>
     {
         public NotificationSettings ToModel(NotificationSettingsRequest request)
         {

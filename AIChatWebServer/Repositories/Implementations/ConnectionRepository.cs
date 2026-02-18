@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Models.Exceptions;
-using AIChatWebServer.Repositories.Constants;
+﻿using AIChatWebServer.Repositories.Constants;
 using AIChatWebServer.Repositories.Interfaces;
 using Npgsql;
 using System.Data;
@@ -7,13 +6,11 @@ using System.Data;
 namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class ConnectionRepository(
-        IUserRepository userRepository,
         ILogger<ConnectionRepository> logger) :
         BaseRepository,
         IConnectionRepository
     {
         private readonly ILogger<ConnectionRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
 
         public async Task<Guid> AddConnectionAsync(
             string device,

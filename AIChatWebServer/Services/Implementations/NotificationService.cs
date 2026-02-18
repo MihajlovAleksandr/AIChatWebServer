@@ -17,13 +17,8 @@ namespace AIChatWebServer.Services.Implementations
             NotificationSettings settings,
             CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(settings);
-
-            if (userId == Guid.Empty)
-                throw new ArgumentException("UserId cannot be empty.", nameof(userId));
-
             _logger.LogInformation(
-                "Service: updating notification settings for UserId={UserId}",
+                "Updating notification settings for UserId={UserId}",
                 userId);
 
             await _repository.UpdateAsync(
@@ -36,11 +31,8 @@ namespace AIChatWebServer.Services.Implementations
             Guid userId,
             CancellationToken cancellationToken = default)
         {
-            if (userId == Guid.Empty)
-                throw new ArgumentException("UserId cannot be empty.", nameof(userId));
-
             _logger.LogInformation(
-                "Service: retrieving notification settings for UserId={UserId}",
+                "Retrieving notification settings for UserId={UserId}",
                 userId);
 
             return await _repository.GetAsync(
@@ -53,14 +45,8 @@ namespace AIChatWebServer.Services.Implementations
             string token,
             CancellationToken cancellationToken = default)
         {
-            if (connectionId == Guid.Empty)
-                throw new ArgumentException("ConnectionId cannot be empty.", nameof(connectionId));
-
-            if (string.IsNullOrWhiteSpace(token))
-                throw new ArgumentException("Token cannot be null or empty.", nameof(token));
-
             _logger.LogInformation(
-                "Service: updating notification token for ConnectionId={ConnectionId}",
+                "Updating notification token for ConnectionId={ConnectionId}",
                 connectionId);
 
             await _repository.UpdateNotificationTokenAsync(
@@ -74,11 +60,8 @@ namespace AIChatWebServer.Services.Implementations
                 Guid[] userIds,
                 CancellationToken cancellationToken = default)
         {
-            if (userIds == null)
-                throw new ArgumentNullException(nameof(userIds));
-
             _logger.LogInformation(
-                "Service: retrieving notification tokens for {UserCount} users",
+                "Retrieving notification tokens for {UserCount} users",
                 userIds.Length);
 
             return await _repository.GetNotificationTokensAsync(

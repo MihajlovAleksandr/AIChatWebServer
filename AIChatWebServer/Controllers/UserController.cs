@@ -3,7 +3,6 @@ using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
-using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +25,8 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpGet("devices")]
-        public async Task<IActionResult> GetDevices([FromServices] IWorkTokenContext tokenContext,
+        public async Task<IActionResult> GetDevices(
+            [FromServices] IWorkTokenContext tokenContext,
             [FromServices] IClientContext clientContext,
             CancellationToken cancellationToken)
         {
@@ -37,9 +37,10 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpPut("userdata")]
-        public async Task<IActionResult> UpdateUserData([FromServices] IWorkTokenContext tokenContext,
+        public async Task<IActionResult> UpdateUserData(
+            [FromServices] IWorkTokenContext tokenContext,
             [FromServices]IClientContext clientContext,
-            UserDataRequest userDataRequest,
+            [FromBody] UserDataRequest userDataRequest,
             CancellationToken cancellationToken)
         {
             await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, cancellationToken);
@@ -52,9 +53,10 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpPut("preference")]
-        public async Task<IActionResult> UpdatePreference([FromServices] IWorkTokenContext tokenContext,
+        public async Task<IActionResult> UpdatePreference(
+            [FromServices] IWorkTokenContext tokenContext,
             [FromServices] IClientContext clientContext,
-            PreferenceRequest preferenceRequest,
+            [FromBody] PreferenceRequest preferenceRequest,
             CancellationToken cancellationToken)
         {
             await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, cancellationToken);
@@ -67,7 +69,8 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpGet("premium")]
-        public async Task<IActionResult> GetPremium([FromServices] IWorkTokenContext tokenContext,
+        public async Task<IActionResult> GetPremium(
+            [FromServices] IWorkTokenContext tokenContext,
             [FromServices] IClientContext clientContext, 
             CancellationToken ct)
         {

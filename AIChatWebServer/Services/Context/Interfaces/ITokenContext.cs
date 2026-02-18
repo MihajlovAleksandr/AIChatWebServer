@@ -1,4 +1,4 @@
-﻿using AIChatWebServer.Services.Tokens.Consts;
+﻿using AIChatWebServer.Services.Context.Consts;
 
 namespace AIChatWebServer.Services.Context.Interfaces
 {

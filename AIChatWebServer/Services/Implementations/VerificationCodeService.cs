@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Models.Exceptions;
-using AIChatWebServer.Models.Exceptions.Implementations.Auth.VerificationCode;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth.VerificationCode;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 using System.Security.Cryptography;

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace AIChatWebServer.Services.Implementations
 {
-    public class Hasher(ILogger<Hasher> logger) : IHasher
+    public sealed class Hasher(ILogger<Hasher> logger) : IHasher
     {
         private readonly ILogger<Hasher> _logger = logger 
             ?? throw new ArgumentNullException(nameof(logger));
@@ -32,7 +32,7 @@ namespace AIChatWebServer.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while hashing passwor data");
+                _logger.LogError(ex, "Error occurred while hashing data");
                 throw;
             }
         }

@@ -2,7 +2,7 @@
 
 namespace AIChatWebServer.DTO.Response
 {
-    public record NotificationSettingsResponse
+    public sealed record NotificationSettingsResponse
     (
         [property: JsonPropertyName("emailNotificationsEnabled")] bool EmailNotificationsEnabled
     );

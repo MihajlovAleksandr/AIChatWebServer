@@ -2,7 +2,9 @@
 
 namespace AIChatWebServer.DTO.Request
 {
-    public record GoogleTokenRequest(
-        [property: JsonPropertyName("token")] string Token
-    );
+    public sealed record GoogleTokenRequest
+    {
+        [JsonPropertyName("token")]
+        public required string Token { get; init; }
+    };
 }

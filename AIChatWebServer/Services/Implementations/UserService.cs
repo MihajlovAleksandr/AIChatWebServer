@@ -5,7 +5,7 @@ using AIChatWebServer.Services.Interfaces;
 
 namespace AIChatWebServer.Services.Implementations
 {
-    public class UserService(IUserRepository userRepository) : IUserService
+    public sealed class UserService(IUserRepository userRepository) : IUserService
     {
         private readonly IUserRepository _userRepository = userRepository;
 

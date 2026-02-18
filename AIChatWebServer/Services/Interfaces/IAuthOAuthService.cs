@@ -4,7 +4,7 @@ namespace AIChatWebServer.Services.Interfaces
 {
     public interface IAuthOAuthService
     {
-        Task<User?> LoginGoogleAsync(
+        Task<User> LoginGoogleAsync(
             string email,
             string googleId,
             CancellationToken ct = default);

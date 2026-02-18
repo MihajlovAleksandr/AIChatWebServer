@@ -1,10 +1,11 @@
-﻿namespace AIChatWebServer.DTO.Response
+﻿using System.Text.Json.Serialization;
+
+namespace AIChatWebServer.DTO.Response
 {
-    public class ConnectionResponse(Guid id, Guid userId, string device, DateTime? lastConnection)
-    {
-        public Guid Id { get; init; } = id;
-        public Guid UserId { get; init; } = userId;
-        public string Device { get; init; } = device;
-        public DateTime? LastConnection { get; init; } = lastConnection;
-    }
+    public sealed record ConnectionResponse(
+        [property: JsonPropertyName("id")] Guid Id,
+        [property: JsonPropertyName("userId")] Guid UserId,
+        [property: JsonPropertyName("device")] string Device,
+        [property: JsonPropertyName("lastConnection")] DateTime? LastConnection
+    );
 }

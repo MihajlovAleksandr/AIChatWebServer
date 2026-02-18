@@ -1,12 +1,13 @@
 ﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
 using AIChatWebServer.Models.Exceptions.Implementations.Connection;
+using AIChatWebServer.Models.Exceptions.Implementations.Context;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 
 namespace AIChatWebServer.Services.Implementations
 {
-    public class ConnectionValidator(IConnectionService connectionService, IUserRepository userRepository) : IConnectionValidator
+    public sealed class ConnectionValidator(IConnectionService connectionService, IUserRepository userRepository) : IConnectionValidator
     {
         private readonly IConnectionService _connectionService = connectionService;
         private readonly IUserRepository _userRepository = userRepository;
@@ -17,7 +18,8 @@ namespace AIChatWebServer.Services.Implementations
             string? device, 
             CancellationToken cancellationToken)
         {
-            ArgumentNullException.ThrowIfNullOrEmpty(device);
+            if (string.IsNullOrWhiteSpace(device))
+                throw new DeviceMissingException();
 
             Models.Connection.ConnectionInfo connectionInfo =
                 await _connectionService.GetConnectionInfoAsync(connectionId, cancellationToken)

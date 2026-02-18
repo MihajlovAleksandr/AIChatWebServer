@@ -4,7 +4,7 @@ using AIChatWebServer.Utils.Interfaces.Mapper;
 
 namespace AIChatWebServer.Utils.Implementations.Mappers
 {
-    public class UserDataMapper : IRequestMapper<UserDataRequest, UserData>
+    public sealed class UserDataMapper : IRequestMapper<UserDataRequest, UserData>
     {
         public UserData ToModel(UserDataRequest request)
         {

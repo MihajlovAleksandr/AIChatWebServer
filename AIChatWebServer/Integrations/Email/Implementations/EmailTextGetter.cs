@@ -3,7 +3,7 @@ using AIChatWebServer.Integrations.Email.Interfaces;
 
 namespace AIChatWebServer.Integrations.Email.Implementations
 {
-    public class EmailTextGetter : IEmailTextGetter
+    public sealed class EmailTextGetter : IEmailTextGetter
     {
         public EmailMessageRequest GetEmail(string localization, string subject)
         {

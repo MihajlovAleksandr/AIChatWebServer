@@ -2,7 +2,7 @@
 
 namespace AIChatWebServer.DTO.Request
 {
-    public record NotificationSettingsRequest
+    public sealed record NotificationSettingsRequest
     {
         [JsonPropertyName("emailNotificationsEnabled")]
         public required bool EmailNotificationsEnabled { get; init; }

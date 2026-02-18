@@ -3,20 +3,13 @@ using AIChatWebServer.Utils.Errors;
 
 namespace AIChatWebServer.Models.Exceptions.Implementations
 {
-    public abstract class ApiExceptionBase : Exception, IApiException
+    public abstract class ApiExceptionBase(
+        int statusCode,
+        IErrorCode errorCode,
+        string message) : Exception(message), IApiException
     {
-        protected ApiExceptionBase(
-            int statusCode,
-            IErrorCode errorCode,
-            string message)
-            : base(message)
-        {
-            StatusCode = statusCode;
-            ErrorCode = errorCode;
-        }
+        public int StatusCode { get; } = statusCode;
 
-        public int StatusCode { get; }
-
-        public IErrorCode ErrorCode { get; }
+        public IErrorCode ErrorCode { get; } = errorCode;
     }
 }

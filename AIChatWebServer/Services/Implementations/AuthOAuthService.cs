@@ -1,4 +1,7 @@
-﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
+﻿using AIChatWebServer.Models.Exceptions.Implementations;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth.Login;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth.Register;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;
@@ -15,28 +18,25 @@ namespace AIChatWebServer.Services.Implementations
 
         private const string GoogleProvider = "GOOGLE";
 
-        public async Task<User?> LoginGoogleAsync(
+        public async Task<User> LoginGoogleAsync(
             string email,
             string googleId,
             CancellationToken ct = default)
         {
-            User? user =
+            User user =
                 await _repository.GetByAuthIdentityCodeAsync(
                     GoogleProvider,
                     email,
-                    ct);
-
-            if (user == null)
-                return null;
+                    ct) ?? throw new UserNotFoundException(email);
 
             var identity =
                 user.GetAuthIdentity(GoogleProvider);
 
             if (identity?.Secret == null)
-                return null;
+                throw new InvalidLoginProviderException(email, GoogleProvider);
 
             if (!_hasher.Verify(googleId, identity.Secret))
-                return null;
+                throw new InvalidCredentialsException(user.Id);
 
             var ban =
                 await _repository.GetUserBanByIdAsync(

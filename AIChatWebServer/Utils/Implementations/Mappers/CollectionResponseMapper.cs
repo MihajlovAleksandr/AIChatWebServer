@@ -2,7 +2,7 @@
 
 namespace AIChatWebServer.Utils.Implementations.Mappers
 {
-    public class CollectionResponseMapper<TModel, TResponse>(IResponseMapper<TModel, TResponse> mapper) : ICollectionResponseMapper<TModel, TResponse>
+    public sealed class CollectionResponseMapper<TModel, TResponse>(IResponseMapper<TModel, TResponse> mapper) : ICollectionResponseMapper<TModel, TResponse>
     {
         private readonly IResponseMapper<TModel, TResponse> mapper = mapper
             ?? throw new ArgumentNullException(nameof(mapper));

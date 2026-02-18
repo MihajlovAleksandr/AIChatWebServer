@@ -1,4 +1,5 @@
-﻿using AIChatWebServer.Repositories.Interfaces;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Connection;
+using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 
 namespace AIChatWebServer.Services.Implementations
@@ -19,16 +20,6 @@ namespace AIChatWebServer.Services.Implementations
             Guid userId,
             CancellationToken ct = default)
         {
-            if (string.IsNullOrWhiteSpace(device))
-            {
-                _logger.LogWarning(
-                    "Attempt to add connection with empty device name.");
-
-                throw new ArgumentException(
-                    "Device cannot be null or empty",
-                    nameof(device));
-            }
-
             var connectionId =
                 await _connectionRepository
                     .AddConnectionAsync(device, userId, ct);
@@ -41,28 +32,19 @@ namespace AIChatWebServer.Services.Implementations
             return connectionId;
         }
 
-        public async Task<Models.Connection.ConnectionInfo?> GetConnectionInfoAsync(
+        public async Task<Models.Connection.ConnectionInfo> GetConnectionInfoAsync(
             Guid connectionId,
             CancellationToken ct = default)
         {
-            var info =
+            Models.Connection.ConnectionInfo info =
                 await _connectionRepository
                     .GetConnectionInfoAsync(
                         connectionId,
-                        ct);
+                        ct) ?? throw new ConnectionNotFoundException(connectionId);
 
-            if (info == null)
-            {
-                _logger.LogWarning(
-                    "Connection info not found for ConnectionId {ConnectionId}.",
-                    connectionId);
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "Retrieved connection info for ConnectionId {ConnectionId}.",
-                    connectionId);
-            }
+            _logger.LogInformation(
+                "Retrieved connection info for ConnectionId {ConnectionId}.",
+                connectionId);
 
             return info;
         }
@@ -83,26 +65,18 @@ namespace AIChatWebServer.Services.Implementations
             return connections;
         }
 
-        public async Task<Models.Connection.ConnectionInfo?> RemoveConnectionAsync(
+        public async Task<Models.Connection.ConnectionInfo> RemoveConnectionAsync(
             Guid id,
             CancellationToken ct = default)
         {
             var removed =
                 await _connectionRepository
-                    .RemoveConnectionAsync(id, ct);
+                    .RemoveConnectionAsync(id, ct)
+                ?? throw new ConnectionNotFoundException(id);
 
-            if (removed == null)
-            {
-                _logger.LogWarning(
-                    "Attempted to remove non-existing Connection {ConnectionId}.",
-                    id);
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "Connection {ConnectionId} removed successfully.",
-                    id);
-            }
+            _logger.LogInformation(
+                "Connection {ConnectionId} removed successfully.",
+                id);
 
             return removed;
         }

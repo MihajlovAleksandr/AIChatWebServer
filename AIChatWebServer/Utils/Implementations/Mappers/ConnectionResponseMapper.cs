@@ -3,7 +3,7 @@ using AIChatWebServer.Utils.Interfaces.Mapper;
 
 namespace AIChatWebServer.Utils.Implementations.Mappers
 {
-    public class ConnectionResponseMapper : IResponseMapper<Models.Connection.ConnectionInfo, ConnectionResponse>
+    public sealed class ConnectionResponseMapper : IResponseMapper<Models.Connection.ConnectionInfo, ConnectionResponse>
     {
         public ConnectionResponse ToResponse(Models.Connection.ConnectionInfo model)
         {

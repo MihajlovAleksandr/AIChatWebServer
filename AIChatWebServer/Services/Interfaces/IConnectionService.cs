@@ -7,7 +7,7 @@
             Guid userId,
             CancellationToken cancellationToken = default);
 
-        Task<Models.Connection.ConnectionInfo?> GetConnectionInfoAsync(
+        Task<Models.Connection.ConnectionInfo> GetConnectionInfoAsync(
             Guid connectionId,
             CancellationToken cancellationToken = default);
 
@@ -16,7 +16,7 @@
                 Guid userId,
                 CancellationToken cancellationToken = default);
 
-        Task<Models.Connection.ConnectionInfo?> RemoveConnectionAsync(
+        Task<Models.Connection.ConnectionInfo> RemoveConnectionAsync(
             Guid id,
             CancellationToken cancellationToken = default);
 

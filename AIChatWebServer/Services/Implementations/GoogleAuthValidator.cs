@@ -1,65 +1,63 @@
 ﻿using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Interfaces;
 using Google.Apis.Auth;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth.Google;
 
 namespace AIChatWebServer.Services.Implementations
 {
-    public class GoogleAuthValidator(
+    public sealed class GoogleAuthValidator(
         IConfiguration configuration,
         ILogger<GoogleAuthValidator> logger,
         ITokenReplayGuard replayGuard) : IOAuthValidator
     {
-        private readonly ILogger<GoogleAuthValidator> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly ILogger<GoogleAuthValidator> _logger = logger;
         private readonly string _googleClientId = configuration["Google:ClientId"]
                 ?? throw new InvalidOperationException("Google ClientId is not configured.");
-        private readonly ITokenReplayGuard _replayGuard = replayGuard ?? throw new ArgumentNullException(nameof(replayGuard));
+        private readonly ITokenReplayGuard _replayGuard = replayGuard;
 
-        public async Task<OAuthUser?> ValidateAsync(string authToken)
+        public async Task<OAuthUser> ValidateAsync(string authToken)
         {
-            if (string.IsNullOrWhiteSpace(authToken))
+            var payload = await ValidateToken(authToken);
+
+            if (!string.Equals((string)payload.Audience, _googleClientId, StringComparison.Ordinal))
             {
-                _logger.LogWarning("Received empty or null auth token.");
-                return null;
+                _logger.LogWarning(
+                    "Token audience mismatch. Expected: {ClientId}, Actual: {Audience}",
+                    _googleClientId,
+                    payload.Audience);
+
+                throw new GoogleTokenAudienceMismatchException(_googleClientId, (string)payload.Audience);
             }
 
-            GoogleJsonWebSignature.Payload? payload = await ValidateToken(authToken);
-
-            if (payload == null)
-            {
-                _logger.LogWarning("Token validation failed: payload is null.");
-                return null;
-            }
-
-            if ((string)payload.Audience != _googleClientId)
-            {
-                _logger.LogWarning("Token audience mismatch. Expected: {ClientId}, Actual: {Audience}",
-                    _googleClientId, payload.Audience);
-                return null;
-            }
-
-            var expSeconds = payload.ExpirationTimeSeconds ?? 0;
-            if (expSeconds <= 0)
+            if (!payload.ExpirationTimeSeconds.HasValue || payload.ExpirationTimeSeconds.Value <= 0)
             {
                 _logger.LogWarning("Token expiration time is missing or invalid.");
-                return null;
+                throw new GoogleTokenExpiredException();
             }
 
-            var expiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(expSeconds).UtcDateTime;
+            var expiresAtUtc =
+                DateTimeOffset.FromUnixTimeSeconds(payload.ExpirationTimeSeconds.Value).UtcDateTime;
 
             var isUsed = await _replayGuard.TryMarkAsUsedAsync(authToken, expiresAtUtc);
+
             if (isUsed)
             {
-                _logger.LogWarning("Replay detected: Google token already used. Email: {Email}", payload.Email);
-                return null;
+                _logger.LogWarning(
+                    "Replay detected: Google token already used. Email: {Email}",
+                    payload.Email);
+
+                throw new GoogleTokenReplayDetectedException(payload.Email);
             }
 
-            _logger.LogInformation("Token successfully validated for user {UserId} with email {Email}.",
-                payload.Subject, payload.Email);
+            _logger.LogInformation(
+                "Token successfully validated for user {UserId} with email {Email}.",
+                payload.Subject,
+                payload.Email);
 
             return new OAuthUser(payload.Subject, payload.Email);
         }
 
-        private async Task<GoogleJsonWebSignature.Payload?> ValidateToken(string idToken)
+        private async Task<GoogleJsonWebSignature.Payload> ValidateToken(string idToken)
         {
             try
             {
@@ -71,13 +69,16 @@ namespace AIChatWebServer.Services.Implementations
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
 
-                _logger.LogInformation("Google token successfully parsed for user {UserId}.", payload.Subject);
-                return payload;
+                _logger.LogInformation(
+                    "Google token successfully parsed for user {UserId}.",
+                    payload.Subject);
+
+                return payload ?? throw new GoogleTokenValidationFailedException();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating Google auth token.");
-                return null;
+                throw new GoogleTokenValidationFailedException();
             }
         }
     }

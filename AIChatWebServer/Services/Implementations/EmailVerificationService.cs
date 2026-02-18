@@ -3,7 +3,7 @@ using AIChatWebServer.Services.Interfaces;
 
 namespace AIChatWebServer.Services.Implementations
 {
-    public class EmailVerificationService(IVerificationCodeService verificationCodeService, IVerificationCodeSender verificationCodeSender) : IEmailVerificationService
+    public sealed class EmailVerificationService(IVerificationCodeService verificationCodeService, IVerificationCodeSender verificationCodeSender) : IEmailVerificationService
     {
         private readonly IVerificationCodeService _verificationCodeService = verificationCodeService 
             ?? throw new ArgumentNullException(nameof(verificationCodeService));

@@ -2,14 +2,10 @@
 
 namespace AIChatWebServer.Models.Exceptions.Implementations.Auth.VerificationCode
 {
-    public sealed class VerificationCodeNotFoundException : ApiExceptionBase
+    public sealed class VerificationCodeNotFoundException(Guid userId, string type) : ApiExceptionBase(
+            404,
+            RegisterErrors.CodeNotFound,
+            $"Verification code not found for user {userId}. Type: {type}")
     {
-        public VerificationCodeNotFoundException(Guid userId, string type)
-            : base(
-                404,
-                RegisterErrors.CodeNotFound,
-                $"Verification code not found for user {userId}. Type: {type}")
-        {
-        }
     }
 }

@@ -2,8 +2,9 @@
 
 namespace AIChatWebServer.DTO.Request
 {
-    public record VerificationCodeRequest
-    (
-        [property: JsonPropertyName("code")] string Code
-    );
+    public sealed record VerificationCodeRequest
+    {
+        [JsonPropertyName("code")]
+        public required string Code { get; init; }
+    }
 }

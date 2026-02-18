@@ -12,8 +12,6 @@ using AIChatWebServer.Services.Context.Implementations;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Implementations;
 using AIChatWebServer.Services.Interfaces;
-using AIChatWebServer.Services.Tokens.Implementations;
-using AIChatWebServer.Services.Tokens.Interfaces;
 using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Implementations;
 using AIChatWebServer.Utils.Implementations.Mappers;
@@ -34,6 +32,7 @@ var redisConnectionString =
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     ConnectionMultiplexer.Connect(redisConnectionString));
 
+builder.Services.AddSingleton<IHasher, Hasher>();
 builder.Services.AddSingleton<ITokenReplayGuard, RedisTokenReplayGuard>();
 
 builder.Services.AddHttpContextAccessor();
@@ -60,8 +59,6 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
-
-builder.Services.AddScoped<IHasher, Hasher>();
 
 builder.Services.AddScoped<IAuthLoginService, AuthLoginService>();
 builder.Services.AddScoped<IAuthRegistrationService, AuthRegistrationService>();

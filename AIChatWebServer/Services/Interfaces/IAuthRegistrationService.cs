@@ -1,6 +1,6 @@
 ﻿using AIChatWebServer.Models.User;
 
-namespace AIChatWebServer.Services.Implementations
+namespace AIChatWebServer.Services.Interfaces
 {
     public interface IAuthRegistrationService
     {

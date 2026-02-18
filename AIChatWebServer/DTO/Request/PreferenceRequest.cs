@@ -3,10 +3,13 @@ using System.Text.Json.Serialization;
 
 namespace AIChatWebServer.DTO.Request
 {
-    public record PreferenceRequest
-    (
-        [property: JsonPropertyName("minAge")] int MinAge,
-        [property: JsonPropertyName("maxAge")] int MaxAge,
-        [property: JsonPropertyName("gender")] PreferenceGender Gender
-    );
+    public sealed record PreferenceRequest
+    {
+        [JsonPropertyName("minAge")] 
+        public required int MinAge { get; init; }
+        [JsonPropertyName("maxAge")]
+        public required int MaxAge { get; init; }
+        [JsonPropertyName("gender")]
+        public required PreferenceGender Gender { get; init; }
+    };
 }

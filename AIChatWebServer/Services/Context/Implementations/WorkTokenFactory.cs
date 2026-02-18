@@ -1,5 +1,5 @@
-﻿using AIChatWebServer.Services.Tokens.Consts;
-using AIChatWebServer.Services.Tokens.Interfaces;
+﻿using AIChatWebServer.Services.Context.Consts;
+using AIChatWebServer.Services.Context.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 

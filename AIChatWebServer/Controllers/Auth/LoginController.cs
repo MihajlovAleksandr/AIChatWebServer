@@ -4,7 +4,6 @@ using AIChatWebServer.Models.Exceptions.Implementations.Context;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
-using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChatWebServer.Controllers.Auth
@@ -15,15 +14,13 @@ namespace AIChatWebServer.Controllers.Auth
         IAuthLoginService loginService,
         IConnectionService connectionService,
         IWorkTokenFactory workTokenFactory,
-        IRegistrationTokenFactory registrationTokenFactory,
-        IResponseMapper<UserBan, BanResponse> banMapper)
+        IRegistrationTokenFactory registrationTokenFactory)
         : ControllerBase
     {
         private readonly IAuthLoginService _loginService = loginService;
         private readonly IConnectionService _connectionService = connectionService;
         private readonly IWorkTokenFactory _workTokenFactory = workTokenFactory;
         private readonly IRegistrationTokenFactory _registrationTokenFactory = registrationTokenFactory;
-        private readonly IResponseMapper<UserBan, BanResponse> _banMapper = banMapper;
 
         [HttpPost]
         public async Task<IActionResult> Login(

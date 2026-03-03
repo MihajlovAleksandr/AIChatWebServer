@@ -6,7 +6,6 @@ using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Utils.Interfaces;
-using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChatWebServer.Controllers.Auth
@@ -19,8 +18,7 @@ namespace AIChatWebServer.Controllers.Auth
         IWorkTokenFactory workTokenFactory,
         IRegistrationTokenFactory registrationTokenFactory,
         IOAuthValidator oAuthValidator,
-        IRegionGetter regionGetter,
-        IResponseMapper<UserBan, BanResponse> banMapper)
+        IRegionGetter regionGetter)
         : ControllerBase
     {
         private readonly IAuthOAuthService _oauthService = oauthService;
@@ -29,7 +27,6 @@ namespace AIChatWebServer.Controllers.Auth
         private readonly IRegistrationTokenFactory _registrationTokenFactory = registrationTokenFactory;
         private readonly IOAuthValidator _oAuthValidator = oAuthValidator;
         private readonly IRegionGetter _regionGetter = regionGetter;
-        private readonly IResponseMapper<UserBan, BanResponse> _banMapper = banMapper;
 
         [HttpPost("google")]
         public async Task<IActionResult> GoogleAuth(

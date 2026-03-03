@@ -3,6 +3,7 @@ using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Integrations.Email.Implementations;
 using AIChatWebServer.Integrations.Email.Interfaces;
 using AIChatWebServer.Middlewares;
+using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Exceptions.Implementations.Auth;
 using AIChatWebServer.Models.Notification;
 using AIChatWebServer.Models.User;
@@ -11,7 +12,10 @@ using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Context.Implementations;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Implementations;
+using AIChatWebServer.Services.Implementations.Chats;
+using AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator;
 using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Chats;
 using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Implementations;
 using AIChatWebServer.Utils.Implementations.Mappers;
@@ -47,6 +51,7 @@ builder.Services.AddScoped<IVerificationCodeSender, VerificationCodeSender>();
 builder.Services.AddScoped<IRequestMapper<UserDataRequest, UserData>, UserDataMapper>();
 builder.Services.AddScoped<IRequestMapper<PreferenceRequest, Preference>, PreferenceMapper>();
 builder.Services.AddScoped<IResponseMapper<UserBan, BanResponse>, BanResponseMapper>();
+builder.Services.AddScoped<IResponseMapper<ChatWithUserContext, ChatResponse>, ChatResponseMapper>();
 builder.Services.AddScoped<IResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>, ConnectionResponseMapper>();
 builder.Services.AddScoped<ICollectionResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>, CollectionResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>>();
 builder.Services.AddScoped<NotificationSettingsMapper>();
@@ -59,6 +64,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
 
 builder.Services.AddScoped<IAuthLoginService, AuthLoginService>();
 builder.Services.AddScoped<IAuthRegistrationService, AuthRegistrationService>();
@@ -74,6 +80,12 @@ builder.Services.AddScoped<IVerificationCodeService, VerificationCodeService>();
 builder.Services.AddScoped<IConnectionValidator, ConnectionValidator>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+
+builder.Services.AddScoped<IChatPolicyFactory, ChatPolicyFactory>();
+builder.Services.AddScoped<IChatSettingsFactory, ChatSettingsFactory>();
+builder.Services.AddScoped<IUserSettingsFactory, UserSettingsFactory>();
+builder.Services.AddScoped<IConversationActionValidator, ConversationActionValidator>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 

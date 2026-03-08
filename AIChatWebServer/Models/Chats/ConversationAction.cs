@@ -6,9 +6,11 @@ namespace AIChatWebServer.Models.Chats
     public abstract record ChatAction : ConversationAction;
     public record UpdateNameAction(Guid UserId, string Name) : ChatAction;
     public record EndChatAction(Guid UserId) : ChatAction;
-    public record AddUserAction(Guid UserId, Guid AddedUserId, ChatSearchType SearchType, string ChatName = "New Chat") : ChatAction;
+    public record AddUserAction(Guid UserId, Guid AddedUserId, ChatSearchType SearchType,
+        ChatUserRole RoleOnJoin = ChatUserRole.Member, string ChatName = "New Chat") : ChatAction;
     public record RemoveUserAction(Guid UserId, Guid RemovedUserId) : ChatAction;
     public record CallAction(Guid UserId, bool IsVideo) : ConversationAction;
     public record ChangeChatSettingsAction(Guid UserId, Guid TargetUserId, ChatSettings NewSettings) : ChatAction;
     public record ChangeUserSettingsAction(Guid UserId, Guid TargetUserId, UserSettings NewSettings) : ChatAction;
+    public record InviteUserToChatAction(Guid UserId, ChatUserRole RoleOnJoin = ChatUserRole.Member, string ChatName = "New Chat") : ConversationAction;
 }

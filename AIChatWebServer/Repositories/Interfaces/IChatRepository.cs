@@ -8,7 +8,7 @@ namespace AIChatWebServer.Repositories.Interfaces
         Task<Guid> CreateAsync(ChatType type, IEnumerable<Guid> creatorUserIds, string creatorChatName, CancellationToken cancellationToken = default);
         Task<Chat?> GetById(Guid id, CancellationToken cancellationToken = default);
         Task UpdateName(Guid id, Guid userId, string name, CancellationToken cancellationToken = default);
-        Task AddUser(Guid id, Guid userId, string name, CancellationToken cancellationToken = default);
+        Task AddUser(Guid id, Guid userId, string name, ChatUserRole role, CancellationToken cancellationToken = default);
         Task RemoveUser(Guid id, Guid userId, CancellationToken cancellationToken = default);
         Task End(Guid id, CancellationToken cancellationToken = default);
         Task UpdateChatSettings(Guid chatId, ChatSettings settings, CancellationToken cancellationToken = default);

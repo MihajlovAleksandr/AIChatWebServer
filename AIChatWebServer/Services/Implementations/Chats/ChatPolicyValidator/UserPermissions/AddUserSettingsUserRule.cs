@@ -17,6 +17,11 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator.Use
                 throw new UserAlreadyInChatException(chat.Id, action.AddedUserId);
             }
 
+            if (chatUserData.UserSettings.Role < action.RoleOnJoin)
+            {
+                throw new ChatUserAdditionForbiddenDueToRoleHierarchyException(chat.Id, action.UserId, action.AddedUserId, action.RoleOnJoin);
+            }
+
             if (!chatUserData.UserSettings.CanAddUsersBySearch
                     && action.SearchType == ChatSearchType.Search
                 || !chatUserData.UserSettings.CanAddUserByLink

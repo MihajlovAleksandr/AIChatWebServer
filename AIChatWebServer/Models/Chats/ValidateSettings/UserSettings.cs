@@ -76,5 +76,17 @@
                 canChangeChatSettings: false,
                 canStartCalls: true);
         }
+
+        public static UserSettings Create(ChatUserRole role)
+        {
+            return role switch
+            {
+                ChatUserRole.Member => CreateDefaultMember(),
+                ChatUserRole.Admin => CreateAdmin(),
+                ChatUserRole.Owner => CreateOwner(),
+                _ => throw new NotSupportedException()
+            };
+                
+        }
     }
 }

@@ -11,7 +11,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
             return new ChatRulesValidator(new Dictionary<Type, IConversationActionRule>
             {
                 { typeof(AddUserAction), new AddUserSettingsChatRule() },
-                { typeof(CallAction), new CallSettingsChatRule() }
+                { typeof(CallAction), new CallSettingsChatRule() },
+                { typeof(InviteUserToChatAction), new InviteUserSettingsChatRule() }
             });
         }
     }

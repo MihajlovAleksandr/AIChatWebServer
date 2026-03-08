@@ -44,7 +44,7 @@ namespace AIChatWebServer.Services.Implementations.Chats
                     _chatRepository.UpdateName(chatId, updateNameAction.UserId, updateNameAction.Name, cancellationToken),
 
                 AddUserAction addUserAction =>
-                    _chatRepository.AddUser(chatId, addUserAction.AddedUserId, addUserAction.ChatName, cancellationToken),
+                    _chatRepository.AddUser(chatId, addUserAction.AddedUserId, addUserAction.ChatName, addUserAction.RoleOnJoin, cancellationToken),
 
                 RemoveUserAction removeUserAction =>
                     _chatRepository.RemoveUser(chatId, removeUserAction.RemovedUserId, cancellationToken),

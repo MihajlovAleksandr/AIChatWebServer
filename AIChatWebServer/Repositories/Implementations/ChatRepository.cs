@@ -31,28 +31,29 @@ namespace AIChatWebServer.Repositories.Implementations
 
                 var defaultSettings = ChatSettings.CreateDefault();
 
-                await InsertChatSettings(chatId, defaultSettings, conn, tx, cancellationToken);
+                await InsertChatSettings(
+                    chatId,
+                    defaultSettings,
+                    conn,
+                    tx,
+                    cancellationToken);
 
                 foreach (var creatorUserId in creatorUserIds)
                 {
-
-                    var usersChatId = Guid.NewGuid();
-
-                    await using (var cmd = new NpgsqlCommand(ChatQueries.AddUserToChat, conn, tx))
-                    {
-                        cmd.Parameters.AddWithValue("@id", usersChatId);
-                        cmd.Parameters.AddWithValue("@userId", creatorUserId);
-                        cmd.Parameters.AddWithValue("@chatId", chatId);
-                        cmd.Parameters.AddWithValue("@name", creatorChatName);
-                        await cmd.ExecuteNonQueryAsync(cancellationToken);
-                    }
-
                     var ownerSettings = UserSettings.CreateOwner();
 
-                    await InsertUserSettings(usersChatId, ownerSettings, conn, tx, cancellationToken);
-
+                    await AddUserInternal(
+                        conn,
+                        tx,
+                        chatId,
+                        creatorUserId,
+                        creatorChatName,
+                        ownerSettings,
+                        cancellationToken);
                 }
+
                 await tx.CommitAsync(cancellationToken);
+
                 return chatId;
             }
             catch
@@ -60,6 +61,55 @@ namespace AIChatWebServer.Repositories.Implementations
                 await tx.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+        private static async Task<Guid> AddOrRestoreUserInternal(
+            NpgsqlConnection conn,
+            NpgsqlTransaction tx,
+            Guid chatId,
+            Guid userId,
+            string name,
+            CancellationToken ct)
+        {
+            var newUsersChatId = Guid.NewGuid();
+
+            await using var cmd = new NpgsqlCommand(ChatQueries.AddUserToChat, conn, tx);
+
+            cmd.Parameters.AddWithValue("@id", newUsersChatId);
+            cmd.Parameters.AddWithValue("@chatId", chatId);
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@name", name);
+
+            var result = await cmd.ExecuteScalarAsync(ct);
+
+            return (Guid)result!;
+        }
+
+        private static async Task<Guid> AddUserInternal(
+            NpgsqlConnection conn,
+            NpgsqlTransaction tx,
+            Guid chatId,
+            Guid userId,
+            string name,
+            UserSettings settings,
+            CancellationToken ct)
+        {
+            var usersChatId = await AddOrRestoreUserInternal(
+                conn,
+                tx,
+                chatId,
+                userId,
+                name,
+                ct);
+
+            await UpsertUserSettings(
+                usersChatId,
+                settings,
+                conn,
+                tx,
+                ct);
+
+            return usersChatId;
         }
 
         private static async Task InsertChatSettings(
@@ -81,7 +131,7 @@ namespace AIChatWebServer.Repositories.Implementations
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
-        private static async Task InsertUserSettings(
+        private static async Task UpsertUserSettings(
             Guid usersChatId,
             UserSettings settings,
             NpgsqlConnection conn,
@@ -89,7 +139,7 @@ namespace AIChatWebServer.Repositories.Implementations
             CancellationToken ct)
         {
             await using var cmd =
-                new NpgsqlCommand(ChatQueries.AddUserSettings, conn, tx);
+                new NpgsqlCommand(ChatQueries.UpsertUserSettings, conn, tx);
 
             cmd.Parameters.AddWithValue("@usersChatId", usersChatId);
             cmd.Parameters.AddWithValue("@role", NpgsqlDbType.Varchar, settings.Role.ToString());
@@ -97,7 +147,7 @@ namespace AIChatWebServer.Repositories.Implementations
             cmd.Parameters.AddWithValue("@canAddUserByLink", settings.CanAddUserByLink);
             cmd.Parameters.AddWithValue("@canRemoveUsers", settings.CanRemoveUsers);
             cmd.Parameters.AddWithValue("@canChangeUserSettings", settings.CanChangeUserSettings);
-            cmd.Parameters.AddWithValue("@canChangeChatSettings", settings.CanChangeUserSettings);
+            cmd.Parameters.AddWithValue("@canChangeChatSettings", settings.CanChangeChatSettings);
             cmd.Parameters.AddWithValue("@canStartCalls", settings.CanStartCalls);
 
             await cmd.ExecuteNonQueryAsync(ct);
@@ -171,6 +221,7 @@ namespace AIChatWebServer.Repositories.Implementations
             Guid chatId,
             Guid userId,
             string name,
+            ChatUserRole role,
             CancellationToken cancellationToken = default)
         {
             await using var conn = await GetConnectionAsync(cancellationToken);
@@ -178,20 +229,16 @@ namespace AIChatWebServer.Repositories.Implementations
 
             try
             {
-                var usersChatId = Guid.NewGuid();
+                var settings = UserSettings.Create(role);
 
-                await using (var cmd = new NpgsqlCommand(ChatQueries.AddUserToChat, conn, tx))
-                {
-                    cmd.Parameters.AddWithValue("@id", usersChatId);
-                    cmd.Parameters.AddWithValue("@chatId", chatId);
-                    cmd.Parameters.AddWithValue("@userId", userId);
-                    cmd.Parameters.AddWithValue("@name", name);
-                    await cmd.ExecuteNonQueryAsync(cancellationToken);
-                }
-
-                var defaultSettings = UserSettings.CreateDefaultMember();
-
-                await InsertUserSettings(usersChatId, defaultSettings, conn, tx, cancellationToken);
+                await AddUserInternal(
+                    conn,
+                    tx,
+                    chatId,
+                    userId,
+                    name,
+                    settings,
+                    cancellationToken);
 
                 await tx.CommitAsync(cancellationToken);
             }

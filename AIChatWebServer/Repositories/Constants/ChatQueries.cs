@@ -55,16 +55,25 @@
                 video_enabled)
             VALUES (
                 @chatId,
-                TRUE,
-                TRUE,
-                TRUE,
-                TRUE);";
+                @allowAddByLink,
+                @allowSearchJoin,
+                @callEnabled,
+                @videoEnabled);";
 
         public const string AddUserToChat = @"
             INSERT INTO users_chats (id, user_id, chat_id, name)
-            VALUES (@id, @userId, @chatId, @name);";
+            VALUES (@id, @userId, @chatId, @name)
 
-        public const string AddUserSettings = @"
+            ON CONFLICT (chat_id, user_id)
+            DO UPDATE SET
+                deleted_status = FALSE,
+                name = EXCLUDED.name,
+                join_time = CURRENT_TIMESTAMP,
+                last_update = CURRENT_TIMESTAMP
+            
+            RETURNING id;";
+
+        public const string UpsertUserSettings = @"
             INSERT INTO user_chat_settings (
                 user_chat_id,
                 role,
@@ -82,7 +91,17 @@
                 @canRemoveUsers,
                 @canChangeUserSettings,
                 @canChangeChatSettings,
-                @canStartCalls);";
+                @canStartCalls)
+
+            ON CONFLICT (user_chat_id)
+            DO UPDATE SET
+                role = EXCLUDED.role,
+                can_add_users_by_search = EXCLUDED.can_add_users_by_search,
+                can_add_user_by_link = EXCLUDED.can_add_user_by_link,
+                can_remove_users = EXCLUDED.can_remove_users,
+                can_change_user_settings = EXCLUDED.can_change_user_settings,
+                can_change_chat_settings = EXCLUDED.can_change_chat_settings,
+                can_start_calls = EXCLUDED.can_start_calls;";
 
         public const string UpdateChatName = @"
             UPDATE users_chats

@@ -1,5 +1,4 @@
 ﻿using AIChatWebServer.Models.Chats;
-using AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator.ConversationActionRules;
 using AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator.UserPermissions;
 using AIChatWebServer.Services.Interfaces.Chats;
 
@@ -16,7 +15,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
                 { typeof(ChangeChatSettingsAction), new ChangeChatSettingsUserRule() },
                 { typeof(ChangeUserSettingsAction), new ChangeUserSettingsUserRule() },
                 { typeof(CallAction), new StartCallSettingsUserRule() },
-                { typeof(EndChatAction), new EndChatUserRule() }
+                { typeof(EndChatAction), new EndChatUserRule() },
+                { typeof(InviteUserToChatAction), new InviteUserSettingsUserRule() }
             });
         }
     }

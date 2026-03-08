@@ -71,5 +71,8 @@
 
         public static readonly IErrorCode ChatEndForbiddenForNonOwner =
             new ChatErrors("CHAT_END_FORBIDDEN_FOR_NON_OWNER");
+
+        public static readonly IErrorCode ChatUserInvitationForbiddenDueToRoleHierarchy =
+            new ChatErrors("CHAT_USER_INVITATION_FORBIDDEN_DUE_TO_ROLE_HIERARCHY");
     }
 }

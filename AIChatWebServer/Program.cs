@@ -65,6 +65,7 @@ builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeReposito
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<ILinkRepository, LinkRepository>();
 
 builder.Services.AddScoped<IAuthLoginService, AuthLoginService>();
 builder.Services.AddScoped<IAuthRegistrationService, AuthRegistrationService>();
@@ -86,6 +87,8 @@ builder.Services.AddScoped<IChatSettingsFactory, ChatSettingsFactory>();
 builder.Services.AddScoped<IUserSettingsFactory, UserSettingsFactory>();
 builder.Services.AddScoped<IConversationActionValidator, ConversationActionValidator>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<ILinkService, LinkService>();
+builder.Services.AddScoped<IChatLinkService, ChatLinkService>();
 
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 

@@ -120,7 +120,7 @@
 
         public const string EndChat = @"
             UPDATE chats
-            SET end_time = CURRENT_TIMESTAMP
+            SET end_time = @endTime
             WHERE id = @chatId;";
 
         public const string UpdateChatSettings = @"

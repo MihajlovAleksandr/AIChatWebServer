@@ -11,8 +11,7 @@ namespace AIChatWebServer.Repositories.Implementations
     {
         public async Task<Guid> CreateAsync(
             ChatType type,
-            IEnumerable<Guid> creatorUserIds,
-            string creatorChatName,
+            IDictionary<Guid, string> creatorsWithChatNames,
             CancellationToken cancellationToken = default)
         {
             await using var conn = await GetConnectionAsync(cancellationToken);
@@ -38,7 +37,7 @@ namespace AIChatWebServer.Repositories.Implementations
                     tx,
                     cancellationToken);
 
-                foreach (var creatorUserId in creatorUserIds)
+                foreach (var creatorWithChatName in creatorsWithChatNames)
                 {
                     var ownerSettings = UserSettings.CreateOwner();
 
@@ -46,8 +45,8 @@ namespace AIChatWebServer.Repositories.Implementations
                         conn,
                         tx,
                         chatId,
-                        creatorUserId,
-                        creatorChatName,
+                        creatorWithChatName.Key,
+                        creatorWithChatName.Value,
                         ownerSettings,
                         cancellationToken);
                 }
@@ -260,9 +259,10 @@ namespace AIChatWebServer.Repositories.Implementations
                 ("@userId", userId),
                 ("@name", name));
 
-        public Task End(Guid chatId, CancellationToken cancellationToken = default) =>
+        public Task End(Guid chatId, DateTime endTime, CancellationToken cancellationToken = default) =>
             ExecuteAsync(ChatQueries.EndChat, cancellationToken,
-                ("@chatId", chatId));
+                ("@chatId", chatId),
+                ("@endTime", endTime));
 
         public Task UpdateChatSettings(
             Guid chatId,

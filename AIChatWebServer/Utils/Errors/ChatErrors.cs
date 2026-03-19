@@ -9,6 +9,9 @@
         public static readonly IErrorCode ChatNotFound =
             new ChatErrors("CHAT_NOT_FOUND");
 
+        public static readonly IErrorCode ChatTypeNotSupported =
+            new ChatErrors("CHAT_TYPE_NOT_SUPPORTED");
+
         public static readonly IErrorCode UserAlreadyInChat =
             new ChatErrors("USER_ALREADY_IN_CHAT");
 

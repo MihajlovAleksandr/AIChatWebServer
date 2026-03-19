@@ -13,4 +13,5 @@ namespace AIChatWebServer.Models.Chats
     public record ChangeChatSettingsAction(Guid UserId, Guid TargetUserId, ChatSettings NewSettings) : ChatAction;
     public record ChangeUserSettingsAction(Guid UserId, Guid TargetUserId, UserSettings NewSettings) : ChatAction;
     public record InviteUserToChatAction(Guid UserId, ChatUserRole RoleOnJoin = ChatUserRole.Member, string ChatName = "New Chat") : ConversationAction;
+    public record StartSearchChatAction(Guid UserId, string UserPredicate, int Slots) : ChatAction;
 }

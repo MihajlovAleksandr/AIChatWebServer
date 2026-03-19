@@ -17,7 +17,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
                     { typeof(CallAction), new CallsForbiddenRule() },
                     { typeof(EndChatAction), new EndChatValidationRule() },
                     { typeof(UpdateNameAction), new UpdateChatNameValidationRule() },
-                    { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() }
+                    { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() },
+                    { typeof(StartSearchChatAction), new StartSearchForbiddenRule() }
                 }),
 
                 ChatType.Human => new ChatRulesValidator(new Dictionary<Type, IConversationActionRule>
@@ -26,7 +27,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
                     { typeof(RemoveUserAction), new RemoveUserForbiddenRule() },
                     { typeof(EndChatAction), new EndChatValidationRule() },
                     { typeof(UpdateNameAction), new UpdateChatNameValidationRule() },
-                    { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() }
+                    { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() },
+                    { typeof(StartSearchChatAction), new StartSearchForbiddenRule() }
                 }),
 
                 ChatType.Random => new ChatRulesValidator(new Dictionary<Type, IConversationActionRule>
@@ -37,7 +39,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
                     { typeof(EndChatAction), new EndChatForbiddenRule() },
                     { typeof(ChangeChatSettingsAction), new SettingsModificationForbiddenRule() },
                     { typeof(UpdateNameAction), new UpdateChatNameValidationRule() },
-                    { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() }
+                    { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() },
+                    { typeof(StartSearchChatAction), new StartSearchForbiddenRule() }
                 }),
 
                 ChatType.Group => new ChatRulesValidator(

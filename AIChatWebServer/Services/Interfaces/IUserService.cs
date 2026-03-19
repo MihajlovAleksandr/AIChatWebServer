@@ -7,5 +7,6 @@ namespace AIChatWebServer.Services.Interfaces
         Task UpdateUserData(Guid userId, UserData userData, CancellationToken cancellationToken);
         Task UpdatePreference(Guid userId, Preference preference, CancellationToken cancellationToken);
         Task<bool> IsPremium(Guid userId, CancellationToken cancellationToken);
+        Task<User> GetByIdAsync(Guid userId, CancellationToken cancellationToken);
     }
 }

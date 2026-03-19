@@ -1,6 +1,6 @@
-﻿using AIChatWebServer.Models.Exceptions.Implementations;
-using AIChatWebServer.Models.Exceptions.Implementations.Auth;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
 using AIChatWebServer.Models.Exceptions.Implementations.Auth.Login;
+using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;

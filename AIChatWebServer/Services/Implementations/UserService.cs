@@ -1,4 +1,4 @@
-﻿using AIChatWebServer.Models.Exceptions.Implementations;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces;
@@ -29,6 +29,11 @@ namespace AIChatWebServer.Services.Implementations
         public async Task UpdateUserData(Guid userId, UserData userData, CancellationToken cancellationToken)
         {
             await _userRepository.SaveUserDataAsync(userId, userData, cancellationToken);
+        }
+
+        public async Task<User> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            return await _userRepository.GetByIdAsync(userId, cancellationToken) ?? throw new UserNotFoundException(userId);
         }
     }
 }

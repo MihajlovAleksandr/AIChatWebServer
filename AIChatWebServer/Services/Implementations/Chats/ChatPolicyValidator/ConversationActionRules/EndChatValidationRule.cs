@@ -7,7 +7,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator.Con
     {
         public override void Validate(Chat chat, EndChatAction action)
         {
-            if (chat.EndTime != null)
+            if (chat.IsChatEnded())
             {
                 throw new ChatAlreadyEndedException(chat.Id);
             }

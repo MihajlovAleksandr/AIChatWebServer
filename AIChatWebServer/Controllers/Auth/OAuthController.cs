@@ -1,7 +1,7 @@
 ﻿using AIChatWebServer.DTO.Request;
 using AIChatWebServer.DTO.Response;
-using AIChatWebServer.Models.Exceptions.Implementations;
 using AIChatWebServer.Models.Exceptions.Implementations.Context;
+using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;

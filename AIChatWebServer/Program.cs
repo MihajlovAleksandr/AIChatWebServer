@@ -14,8 +14,13 @@ using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Implementations;
 using AIChatWebServer.Services.Implementations.Chats;
 using AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator;
+using AIChatWebServer.Services.Implementations.Chats.Matchmaking;
+using AIChatWebServer.Services.Implementations.Chats.Matchmaking.Predicates;
+using AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies;
+using AIChatWebServer.Services.Implementations.Chats.RandomChatGame;
 using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
 using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Implementations;
 using AIChatWebServer.Utils.Implementations.Mappers;
@@ -66,6 +71,9 @@ builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<ILinkRepository, LinkRepository>();
+builder.Services.AddScoped<IMatchmakingRepository, MatchmakingRepository>();
+builder.Services.AddScoped<IGroupChatSearchRepository, GroupChatSearchRepository>();
+builder.Services.AddScoped<IUnitOfWorkFactory, UnitOfWorkFactory>();
 
 builder.Services.AddScoped<IAuthLoginService, AuthLoginService>();
 builder.Services.AddScoped<IAuthRegistrationService, AuthRegistrationService>();
@@ -85,10 +93,17 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatPolicyFactory, ChatPolicyFactory>();
 builder.Services.AddScoped<IChatSettingsFactory, ChatSettingsFactory>();
 builder.Services.AddScoped<IUserSettingsFactory, UserSettingsFactory>();
+builder.Services.AddScoped<IUserMatchPredicateFactory, UserMatchPredicateFactory>();
 builder.Services.AddScoped<IConversationActionValidator, ConversationActionValidator>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ILinkService, LinkService>();
 builder.Services.AddScoped<IChatLinkService, ChatLinkService>();
+builder.Services.AddSingleton<IRandomChatService, RandomChatService>();
+builder.Services.AddScoped<IChatAddUserStrategy, AddUserStrategy>();
+builder.Services.AddScoped<IChatMatchStrategiesHandlerFactory, ChatMatchStrategiesHandlerFactory>();
+builder.Services.AddScoped<IChatCreateStrategiesHandlerFactory, ChatCreateStrategiesHandlerFactory>();
+builder.Services.AddScoped<IDirectMatchmakingService, DirectMatchmakingService>();
+builder.Services.AddScoped<IGroupMatchmakingService, GroupMatchmakingService>();
 
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
@@ -211,6 +226,7 @@ app.UseRouting();
 
 app.UseMiddleware<ApiExceptionMiddleware>();
 app.UseMiddleware<UserBanExceptionMiddleware>();
+app.UseMiddleware<PremiumRequiredExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

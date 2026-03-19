@@ -10,9 +10,9 @@ namespace AIChatWebServer.Services.Implementations.Chats
         private readonly IChatRepository _chatRepository = chatRepository;
         private readonly IConversationActionValidator _chatActionValidator = chatActionValidator;
 
-        public async Task<Guid> CreateAsync(ChatType type, IEnumerable<Guid> userIds, string name, CancellationToken cancellationToken = default)
+        public async Task<Guid> CreateAsync(ChatType type, IDictionary<Guid, string> creatorsWithChatNames, CancellationToken cancellationToken = default)
         {
-            return await _chatRepository.CreateAsync(type, userIds, name, cancellationToken);
+            return await _chatRepository.CreateAsync(type, creatorsWithChatNames, cancellationToken);
         }
 
         public async Task<Chat> GetById(Guid id, CancellationToken cancellationToken = default)
@@ -50,7 +50,7 @@ namespace AIChatWebServer.Services.Implementations.Chats
                     _chatRepository.RemoveUser(chatId, removeUserAction.RemovedUserId, cancellationToken),
 
                 EndChatAction =>
-                    _chatRepository.End(chatId, cancellationToken),
+                    _chatRepository.End(chatId, DateTime.UtcNow, cancellationToken),
 
                 ChangeChatSettingsAction changeChatSettingsAction =>
                     _chatRepository.UpdateChatSettings(chatId, changeChatSettingsAction.NewSettings,

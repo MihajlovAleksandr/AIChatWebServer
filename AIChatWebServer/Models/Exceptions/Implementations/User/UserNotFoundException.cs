@@ -1,6 +1,6 @@
 ﻿using AIChatWebServer.Utils.Errors;
 
-namespace AIChatWebServer.Models.Exceptions.Implementations
+namespace AIChatWebServer.Models.Exceptions.Implementations.User
 {
     public sealed class UserNotFoundException : ApiExceptionBase
     {

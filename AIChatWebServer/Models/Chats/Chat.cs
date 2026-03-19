@@ -23,6 +23,12 @@ namespace AIChatWebServer.Models.Chats
             return UsersWithData.TryGetValue(aiId, out ChatUserData? _);
         }
 
+        public bool IsChatEnded()
+        {
+            if(EndTime == null) return false;
+            return EndTime <= DateTime.UtcNow;
+        }
+
         public override bool Equals(object? obj)
         {
             if (obj is not Chat other) return false;

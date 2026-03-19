@@ -76,5 +76,15 @@ namespace AIChatWebServer.Models.User
             }
             return null;
         }
+
+        public bool IsPremium()
+        {
+            if (Premium == null || Premium.Count == 0)
+                return false;
+
+            var now = DateTime.UtcNow;
+
+            return Premium.Any(p => p.IsActive(now));
+        }
     }
 }

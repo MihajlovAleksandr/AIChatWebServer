@@ -18,5 +18,8 @@
 
         public static readonly IErrorCode UserMismatch =
             new UserErrors("USER_MISMATCH");
+
+        public static readonly IErrorCode PremiumRequired =
+            new UserErrors("PREMIUM_REQUIRED");
     }
 }

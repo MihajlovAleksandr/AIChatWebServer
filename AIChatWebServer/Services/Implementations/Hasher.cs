@@ -6,7 +6,7 @@ namespace AIChatWebServer.Services.Implementations
 {
     public sealed class Hasher(ILogger<Hasher> logger) : IHasher
     {
-        private readonly ILogger<Hasher> _logger = logger 
+        private readonly ILogger<Hasher> _logger = logger
             ?? throw new ArgumentNullException(nameof(logger));
 
         public string Hash(string data)
@@ -15,24 +15,45 @@ namespace AIChatWebServer.Services.Implementations
 
             try
             {
-                using (var sha256 = SHA256.Create())
-                {
-                    var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
-                    var builder = new StringBuilder();
-                    foreach (byte b in bytes)
-                    {
-                        builder.Append(b.ToString("x2"));
-                    }
+                using var sha256 = SHA256.Create();
 
-                    string hash = builder.ToString();
-                    _logger.LogInformation("Data hashed successfully. Hash length: {Length}", hash.Length);
+                var bytes = sha256.ComputeHash(
+                    Encoding.UTF8.GetBytes(data));
 
-                    return hash;
-                }
+                return ToHex(bytes);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while hashing data");
+                throw;
+            }
+        }
+
+        public async Task<string> HashAsync(
+            Stream stream,
+            CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+
+            try
+            {
+                using var sha256 = SHA256.Create();
+
+                byte[] hash =
+                    await sha256.ComputeHashAsync(stream, ct);
+
+                string result = ToHex(hash);
+
+                _logger.LogInformation(
+                    "Stream hashed successfully. Length: {Length}",
+                    result.Length);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error occurred while hashing stream");
                 throw;
             }
         }
@@ -45,24 +66,28 @@ namespace AIChatWebServer.Services.Implementations
             try
             {
                 string computedHash = Hash(data);
-                bool isMatch = string.Equals(computedHash, hashedData, StringComparison.OrdinalIgnoreCase);
 
-                if (isMatch)
-                {
-                    _logger.LogInformation("Data verification succeeded.");
-                }
-                else
-                {
-                    _logger.LogWarning("Data verification failed.");
-                }
-
-                return isMatch;
+                return string.Equals(
+                    computedHash,
+                    hashedData,
+                    StringComparison.OrdinalIgnoreCase);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while verifying data.");
+                _logger.LogError(ex,
+                    "Error occurred while verifying data.");
                 throw;
             }
+        }
+
+        private static string ToHex(byte[] bytes)
+        {
+            var sb = new StringBuilder(bytes.Length * 2);
+
+            foreach (byte b in bytes)
+                sb.Append(b.ToString("x2"));
+
+            return sb.ToString();
         }
     }
 }

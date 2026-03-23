@@ -74,6 +74,7 @@ builder.Services.AddScoped<ILinkRepository, LinkRepository>();
 builder.Services.AddScoped<IMatchmakingRepository, MatchmakingRepository>();
 builder.Services.AddScoped<IGroupChatSearchRepository, GroupChatSearchRepository>();
 builder.Services.AddScoped<IUnitOfWorkFactory, UnitOfWorkFactory>();
+builder.Services.AddScoped<IFileRepository, FileRepository>();
 
 builder.Services.AddScoped<IAuthLoginService, AuthLoginService>();
 builder.Services.AddScoped<IAuthRegistrationService, AuthRegistrationService>();
@@ -89,6 +90,9 @@ builder.Services.AddScoped<IVerificationCodeService, VerificationCodeService>();
 builder.Services.AddScoped<IConnectionValidator, ConnectionValidator>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IFileChecksumService, FileChecksumService>();
+builder.Services.AddScoped<IFileStorage, FileStorage>();
+builder.Services.AddScoped<IFileService, FileService>();
 
 builder.Services.AddScoped<IChatPolicyFactory, ChatPolicyFactory>();
 builder.Services.AddScoped<IChatSettingsFactory, ChatSettingsFactory>();
@@ -170,7 +174,8 @@ builder.Services.AddCors(options =>
             .SetIsOriginAllowed(_ => true)
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials()
+            .WithExposedHeaders("X-File-Type", "Content-Disposition");
     });
 });
 

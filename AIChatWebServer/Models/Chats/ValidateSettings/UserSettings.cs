@@ -1,80 +1,53 @@
 ﻿namespace AIChatWebServer.Models.Chats.ValidateSettings
 {
-    public sealed class UserSettings
+    public sealed class UserSettings(
+        ChatUserRole role,
+        bool canAddUsersBySearch,
+        bool canAddUserByLink,
+        bool canRemoveUsers,
+        bool canChangeUserSettings,
+        bool canChangeChatSettings,
+        bool canStartCalls,
+        UserMessageSettings messages)
     {
-        public ChatUserRole Role { get; }
+        public ChatUserRole Role { get; } = role;
 
-        public bool CanRemoveUsers { get; }
-        public bool CanAddUsersBySearch {  get; }
-        public bool CanAddUserByLink { get; }
-        public bool CanChangeUserSettings { get; }
-        public bool CanChangeChatSettings { get; }
+        public bool CanRemoveUsers { get; } = canRemoveUsers;
+        public bool CanAddUsersBySearch { get; } = canAddUsersBySearch;
+        public bool CanAddUserByLink { get; } = canAddUserByLink;
+        public bool CanChangeUserSettings { get; } = canChangeUserSettings;
+        public bool CanChangeChatSettings { get; } = canChangeChatSettings;
+        public bool CanStartCalls { get; } = canStartCalls;
 
-        public bool CanStartCalls { get; }
+        public UserMessageSettings Messages { get; } = messages ?? throw new ArgumentNullException(nameof(messages));
 
-        public UserSettings(
-            ChatUserRole role,
-            bool canAddUsersBySearch,
-            bool canAddUserByLink,
-            bool canRemoveUsers,
-            bool canChangeUserSettings,
-            bool canChangeChatSettings,
-            bool canStartCalls)
-        {
-            Role = role;
-            CanAddUsersBySearch = canAddUsersBySearch;
-            CanAddUserByLink = canAddUserByLink;
-            CanRemoveUsers = canRemoveUsers;
-            CanChangeUserSettings = canChangeUserSettings;
-            CanChangeChatSettings = canChangeChatSettings;
-            CanStartCalls = canStartCalls;
-        }
-
-        public bool IsHigherThan(UserSettings other)
-        {
-            return Role > other.Role;
-        }
-
+        public bool IsHigherThan(UserSettings other) => Role > other.Role;
         public bool IsOwner() => Role == ChatUserRole.Owner;
-
         public bool IsAdmin() => Role == ChatUserRole.Admin;
-
         public bool IsMember() => Role == ChatUserRole.Member;
 
         public static UserSettings CreateOwner()
         {
             return new UserSettings(
-                role: ChatUserRole.Owner,
-                canAddUsersBySearch: true,
-                canAddUserByLink: true,
-                canRemoveUsers: true,
-                canChangeUserSettings: true,
-                canChangeChatSettings: true,
-                canStartCalls: true);
+                ChatUserRole.Owner,
+                true, true, true, true, true, true,
+                UserMessageSettings.CreateFullAccess());
         }
 
         public static UserSettings CreateAdmin()
         {
             return new UserSettings(
-                role: ChatUserRole.Admin,
-                canAddUsersBySearch: true,
-                canAddUserByLink: true,
-                canRemoveUsers: true,
-                canChangeUserSettings: true,
-                canChangeChatSettings: true,
-                canStartCalls: true);
+                ChatUserRole.Admin,
+                true, true, true, true, true, true,
+                UserMessageSettings.CreateFullAccess());
         }
 
         public static UserSettings CreateDefaultMember()
         {
             return new UserSettings(
                 ChatUserRole.Member,
-                canAddUsersBySearch: false,
-                canAddUserByLink: false,
-                canRemoveUsers: false,
-                canChangeUserSettings: false,
-                canChangeChatSettings: false,
-                canStartCalls: true);
+                false, false, false, false, false, true,
+                UserMessageSettings.CreateDefault());
         }
 
         public static UserSettings Create(ChatUserRole role)
@@ -86,7 +59,6 @@
                 ChatUserRole.Owner => CreateOwner(),
                 _ => throw new NotSupportedException()
             };
-                
         }
     }
 }

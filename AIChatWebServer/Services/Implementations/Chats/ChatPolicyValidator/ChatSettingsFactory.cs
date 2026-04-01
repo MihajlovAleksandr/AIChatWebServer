@@ -13,7 +13,9 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
                 { typeof(AddUserAction), new AddUserSettingsChatRule() },
                 { typeof(CallAction), new CallSettingsChatRule() },
                 { typeof(InviteUserToChatAction), new InviteUserSettingsChatRule() },
-                { typeof(StartSearchChatAction), new StartSearchChatRule() }
+                { typeof(StartSearchChatAction), new StartSearchChatRule() },
+                { typeof(PrepareSendMessageAction), new PrepareSendMessageChatRule() },
+                { typeof(SendMessageAction), new SendMessageChatRule() }
             });
         }
     }

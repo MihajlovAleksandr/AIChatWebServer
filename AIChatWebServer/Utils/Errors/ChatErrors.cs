@@ -30,6 +30,9 @@
         public static readonly IErrorCode ChatMembersModificationForbidden =
             new ChatErrors("CHAT_MEMBERS_MODIFICATION_FORBIDDEN");
 
+        public static readonly IErrorCode SendMessageAttachmentForbidden =
+            new ChatErrors("SEND_MESSAGE_ATTACHMENT_FORBIDDEN");
+
         public static readonly IErrorCode ChatCallsForbidden =
             new ChatErrors("CHAT_CALLS_FORBIDDEN");
 
@@ -77,5 +80,50 @@
 
         public static readonly IErrorCode ChatUserInvitationForbiddenDueToRoleHierarchy =
             new ChatErrors("CHAT_USER_INVITATION_FORBIDDEN_DUE_TO_ROLE_HIERARCHY");
+
+        public static readonly IErrorCode ChatUserInvalidMessageSettings =
+            new ChatErrors("CHAT_USER_INVALID_MESSAGE_SETTINGS");
+
+        public static readonly IErrorCode ChatMessageFilesDisabledByChatSettings =
+            new ChatErrors("CHAT_MESSAGE_FILES_DISABLED_BY_CHAT_SETTINGS");
+
+        public static readonly IErrorCode ChatMessageImagesDisabledByChatSettings =
+            new ChatErrors("CHAT_MESSAGE_IMAGES_DISABLED_BY_CHAT_SETTINGS");
+
+        public static readonly IErrorCode ChatVoiceMessagesDisabledByChatSettings =
+            new ChatErrors("CHAT_VOICE_MESSAGES_DISABLED_BY_CHAT_SETTINGS");
+
+        public static readonly IErrorCode ChatVideoMessagesDisabledByChatSettings =
+            new ChatErrors("CHAT_VIDEO_MESSAGES_DISABLED_BY_CHAT_SETTINGS");
+
+        public static readonly IErrorCode ChatMessagesDisabledByUserSettings =
+            new ChatErrors("CHAT_MESSAGES_DISABLED_BY_USER_SETTINGS");
+
+        public static readonly IErrorCode ChatMessageFilesDisabledByUserSettings =
+            new ChatErrors("CHAT_MESSAGE_FILES_DISABLED_BY_USER_SETTINGS");
+
+        public static readonly IErrorCode ChatMessageImagesDisabledByUserSettings =
+            new ChatErrors("CHAT_MESSAGE_IMAGES_DISABLED_BY_USER_SETTINGS");
+
+        public static readonly IErrorCode ChatVoiceMessagesDisabledByUserSettings =
+            new ChatErrors("CHAT_VOICE_MESSAGES_DISABLED_BY_USER_SETTINGS");
+
+        public static readonly IErrorCode ChatVideoMessagesDisabledByUserSettings =
+            new ChatErrors("CHAT_VIDEO_MESSAGES_DISABLED_BY_USER_SETTINGS");
+
+        public static readonly IErrorCode MessageModificationForbiddenByPolicy =
+            new ChatErrors("MESSAGE_MODIFICATION_FORBIDDEN_BY_POLICY");
+
+        public static readonly IErrorCode ChatMessageModificationDisabledByUserSettings =
+            new ChatErrors("CHAT_MESSAGE_MODIFICATION_DISABLED_BY_USER_SETTINGS");
+
+        public static readonly IErrorCode MessageDeletionForbiddenByPolicy =
+            new ChatErrors("MESSAGE_DELETION_FORBIDDEN_BY_POLICY");
+
+        public static readonly IErrorCode ChatMessageDeletionForbiddenForOthersByUserSettings =
+            new ChatErrors("CHAT_MESSAGE_DELETION_FORBIDDEN_FOR_OTHERS_BY_USER_SETTINGS");
+
+        public static readonly IErrorCode ChatMessageDeletionDisabledByUserSettings =
+            new ChatErrors("CHAT_MESSAGE_DELETION_DISABLED_BY_USER_SETTINGS");
     }
 }

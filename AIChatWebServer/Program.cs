@@ -25,7 +25,6 @@ using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Implementations;
 using AIChatWebServer.Utils.Implementations.Mappers;
 using AIChatWebServer.Utils.Interfaces;
-using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -33,6 +32,7 @@ using StackExchange.Redis;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddMappers();
 
 var redisConnectionString =
     builder.Configuration["Redis:ConnectionString"]
@@ -52,18 +52,7 @@ builder.Services.AddScoped<IHtmlContentBuilder, HtmlContentBuilder>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IEmailTextGetter, EmailTextGetter>();
 builder.Services.AddScoped<IVerificationCodeSender, VerificationCodeSender>();
-
-builder.Services.AddScoped<IRequestMapper<UserDataRequest, UserData>, UserDataMapper>();
-builder.Services.AddScoped<IRequestMapper<PreferenceRequest, Preference>, PreferenceMapper>();
-builder.Services.AddScoped<IResponseMapper<UserBan, BanResponse>, BanResponseMapper>();
-builder.Services.AddScoped<IResponseMapper<ChatWithUserContext, ChatResponse>, ChatResponseMapper>();
-builder.Services.AddScoped<IResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>, ConnectionResponseMapper>();
-builder.Services.AddScoped<ICollectionResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>, CollectionResponseMapper<AIChatWebServer.Models.Connection.ConnectionInfo, ConnectionResponse>>();
 builder.Services.AddScoped<NotificationSettingsMapper>();
-builder.Services.AddScoped<IMapper<NotificationSettingsRequest, NotificationSettings, NotificationSettingsResponse>>(sp => sp.GetRequiredService<NotificationSettingsMapper>());
-builder.Services.AddScoped<IRequestMapper<NotificationSettingsRequest, NotificationSettings>>(sp => sp.GetRequiredService<NotificationSettingsMapper>());
-builder.Services.AddScoped<IResponseMapper<NotificationSettings, NotificationSettingsResponse>>(sp => sp.GetRequiredService<NotificationSettingsMapper>());
-
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
@@ -75,11 +64,15 @@ builder.Services.AddScoped<IMatchmakingRepository, MatchmakingRepository>();
 builder.Services.AddScoped<IGroupChatSearchRepository, GroupChatSearchRepository>();
 builder.Services.AddScoped<IUnitOfWorkFactory, UnitOfWorkFactory>();
 builder.Services.AddScoped<IFileRepository, FileRepository>();
+builder.Services.AddScoped<IUploadSessionRepository, UploadSessionRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 builder.Services.AddScoped<IAuthLoginService, AuthLoginService>();
 builder.Services.AddScoped<IAuthRegistrationService, AuthRegistrationService>();
 builder.Services.AddScoped<IAuthOAuthService, AuthOAuthService>();
 
+builder.Services.AddScoped<IMessageVisibilityPolicy, MessageVisibilityPolicy>();
+builder.Services.AddScoped<IUploadSessionTtlCalculator, UploadSessionTtlCalculator>();
 builder.Services.AddScoped<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<IGeoIpService, MaxMindGeoIpService>();
 builder.Services.AddScoped<IRegionGetter, RegionGetter>();
@@ -94,12 +87,14 @@ builder.Services.AddScoped<IFileChecksumService, FileChecksumService>();
 builder.Services.AddScoped<IFileStorage, FileStorage>();
 builder.Services.AddScoped<IFileService, FileService>();
 
+builder.Services.AddScoped<IUploadSessionService, UploadSessionService>();
 builder.Services.AddScoped<IChatPolicyFactory, ChatPolicyFactory>();
 builder.Services.AddScoped<IChatSettingsFactory, ChatSettingsFactory>();
 builder.Services.AddScoped<IUserSettingsFactory, UserSettingsFactory>();
 builder.Services.AddScoped<IUserMatchPredicateFactory, UserMatchPredicateFactory>();
 builder.Services.AddScoped<IConversationActionValidator, ConversationActionValidator>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<ILinkService, LinkService>();
 builder.Services.AddScoped<IChatLinkService, ChatLinkService>();
 builder.Services.AddSingleton<IRandomChatService, RandomChatService>();

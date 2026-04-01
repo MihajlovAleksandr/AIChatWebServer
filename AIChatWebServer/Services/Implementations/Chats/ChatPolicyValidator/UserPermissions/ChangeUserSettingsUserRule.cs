@@ -54,6 +54,14 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator.Use
                 action.TargetUserId,
                 targetUser.UserSettings,
                 action.NewSettings);
+
+            ValidateMessageSettings(
+                chat.Id,
+                action.UserId,
+                actingUser.UserSettings.Messages,
+                action.TargetUserId,
+                targetUser.UserSettings.Messages,
+                action.NewSettings.Messages);
         }
 
         private static void ValidatePermissionEscalation(
@@ -117,6 +125,85 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator.Use
                 actingSettings.CanStartCalls,
                 targetCurrentSettings.CanStartCalls,
                 newSettings.CanStartCalls);
+        }
+
+        private static void ValidateMessageSettings(
+            Guid chatId,
+            Guid actingUserId,
+            UserMessageSettings acting,
+            Guid targetUserId,
+            UserMessageSettings current,
+            UserMessageSettings next)
+        {
+            ValidateSinglePermission(chatId, actingUserId, targetUserId,
+                nameof(UserMessageSettings.MessagesEnabled),
+                acting.MessagesEnabled,
+                current.MessagesEnabled,
+                next.MessagesEnabled);
+
+            ValidateSinglePermission(chatId, actingUserId, targetUserId,
+                nameof(UserMessageSettings.MessageFilesEnabled),
+                acting.MessageFilesEnabled,
+                current.MessageFilesEnabled,
+                next.MessageFilesEnabled);
+
+            ValidateSinglePermission(chatId, actingUserId, targetUserId,
+                nameof(UserMessageSettings.MessageImagesEnabled),
+                acting.MessageImagesEnabled,
+                current.MessageImagesEnabled,
+                next.MessageImagesEnabled);
+
+            ValidateSinglePermission(chatId, actingUserId, targetUserId,
+                nameof(UserMessageSettings.VoiceMessageEnabled),
+                acting.VoiceMessageEnabled,
+                current.VoiceMessageEnabled,
+                next.VoiceMessageEnabled);
+
+            ValidateSinglePermission(chatId, actingUserId, targetUserId,
+                nameof(UserMessageSettings.VideoMessageEnabled),
+                acting.VideoMessageEnabled,
+                current.VideoMessageEnabled,
+                next.VideoMessageEnabled);
+
+            ValidateSinglePermission(chatId, actingUserId, targetUserId,
+                nameof(UserMessageSettings.EditMessagesEnabled),
+                acting.EditMessagesEnabled,
+                current.EditMessagesEnabled,
+                next.EditMessagesEnabled);
+
+            ValidateSinglePermission(chatId, actingUserId, targetUserId,
+                nameof(UserMessageSettings.DeleteOwnMessagesEnabled),
+                acting.DeleteOwnMessagesEnabled,
+                current.DeleteOwnMessagesEnabled,
+                next.DeleteOwnMessagesEnabled);
+
+            ValidateSinglePermission(chatId, actingUserId, targetUserId,
+                nameof(UserMessageSettings.DeleteOtherMessagesEnabled),
+                acting.DeleteOtherMessagesEnabled,
+                current.DeleteOtherMessagesEnabled,
+                next.DeleteOtherMessagesEnabled);
+
+            if (!next.MessagesEnabled &&
+                (next.MessageFilesEnabled ||
+                 next.MessageImagesEnabled ||
+                 next.VoiceMessageEnabled ||
+                 next.VideoMessageEnabled))
+            {
+                throw new ChatUserInvalidMessageSettingsException(
+                    chatId,
+                    actingUserId,
+                    targetUserId,
+                    "Cannot enable message content types when messages are disabled");
+            }
+
+            if (next.DeleteOtherMessagesEnabled && !next.DeleteOwnMessagesEnabled)
+            {
+                throw new ChatUserInvalidMessageSettingsException(
+                    chatId,
+                    actingUserId,
+                    targetUserId,
+                    "Cannot delete others messages without deleting own messages");
+            }
         }
 
         private static void ValidateSinglePermission(

@@ -18,7 +18,11 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
                     { typeof(EndChatAction), new EndChatValidationRule() },
                     { typeof(UpdateNameAction), new UpdateChatNameValidationRule() },
                     { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() },
-                    { typeof(StartSearchChatAction), new StartSearchForbiddenRule() }
+                    { typeof(StartSearchChatAction), new StartSearchForbiddenRule() },
+                    { typeof(PrepareSendMessageAction), new TextOnlyPrepareSendMessageRule() },
+                    { typeof(SendMessageAction), new TextOnlySendMessageRule() },
+                    { typeof(EditMessageAction), new EditMessageForbiddenRule() },
+                    { typeof(DeleteMessageAction), new DeleteMessageForbiddenRule() }
                 }),
 
                 ChatType.Human => new ChatRulesValidator(new Dictionary<Type, IConversationActionRule>
@@ -40,7 +44,11 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
                     { typeof(ChangeChatSettingsAction), new SettingsModificationForbiddenRule() },
                     { typeof(UpdateNameAction), new UpdateChatNameValidationRule() },
                     { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() },
-                    { typeof(StartSearchChatAction), new StartSearchForbiddenRule() }
+                    { typeof(StartSearchChatAction), new StartSearchForbiddenRule() },
+                    { typeof(PrepareSendMessageAction), new TextOnlyPrepareSendMessageRule() },
+                    { typeof(SendMessageAction), new TextOnlySendMessageRule() },
+                    { typeof(EditMessageAction), new EditMessageForbiddenRule() },
+                    { typeof(DeleteMessageAction), new DeleteMessageForbiddenRule() }
                 }),
 
                 ChatType.Group => new ChatRulesValidator(

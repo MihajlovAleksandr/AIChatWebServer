@@ -10,7 +10,6 @@
         string? checksum,
         Guid uploadedBy,
         DateTime createdAt,
-        bool deletedStatus,
         int referenceCount)
     {
         public Guid Id { get; init; } = id;
@@ -22,7 +21,11 @@
         public string? Checksum { get; init; } = checksum;
         public Guid UploadedBy { get; init; } = uploadedBy;
         public DateTime CreatedAt { get; init; } = createdAt;
-        public bool DeletedStatus { get; init; } = deletedStatus;
-        public int ReferenceCount { get; init; } = referenceCount;
+        public int ReferenceCount { get; private set; } = referenceCount;
+
+        public void RemoveUsage()
+        {
+            ReferenceCount--;
+        }
     }
 }

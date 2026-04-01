@@ -136,7 +136,6 @@ namespace AIChatWebServer.Repositories.Implementations
                     : r.GetString(r.GetOrdinal("checksum")),
                 r.GetGuid(r.GetOrdinal("uploaded_by")),
                 r.GetDateTime(r.GetOrdinal("created_at")),
-                r.GetBoolean(r.GetOrdinal("deleted_status")),
                 r.GetInt32(r.GetOrdinal("reference_count"))
             );
 

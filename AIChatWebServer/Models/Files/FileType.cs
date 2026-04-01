@@ -1,5 +1,8 @@
-﻿namespace AIChatWebServer.Models.Files
+﻿using System.Text.Json.Serialization;
+
+namespace AIChatWebServer.Models.Files
 {
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum FileType
     {
         MessageImage = 1,

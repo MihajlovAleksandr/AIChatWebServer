@@ -127,6 +127,11 @@ namespace AIChatWebServer.Repositories.Implementations
             cmd.Parameters.AddWithValue("@callEnabled", settings.Calls.CallEnabled);
             cmd.Parameters.AddWithValue("@videoEnabled", settings.Calls.VideoEnabled);
 
+            cmd.Parameters.AddWithValue("@messageFilesEnabled", settings.Messages.MessageFilesEnabled);
+            cmd.Parameters.AddWithValue("@messageImagesEnabled", settings.Messages.MessageImagesEnabled);
+            cmd.Parameters.AddWithValue("@voiceMessageEnabled", settings.Messages.VoiceMessageEnabled);
+            cmd.Parameters.AddWithValue("@videoMessageEnabled", settings.Messages.VideoMessageEnabled);
+
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
@@ -148,6 +153,15 @@ namespace AIChatWebServer.Repositories.Implementations
             cmd.Parameters.AddWithValue("@canChangeUserSettings", settings.CanChangeUserSettings);
             cmd.Parameters.AddWithValue("@canChangeChatSettings", settings.CanChangeChatSettings);
             cmd.Parameters.AddWithValue("@canStartCalls", settings.CanStartCalls);
+
+            cmd.Parameters.AddWithValue("@messagesEnabled", settings.Messages.MessagesEnabled);
+            cmd.Parameters.AddWithValue("@messageFilesEnabled", settings.Messages.MessageFilesEnabled);
+            cmd.Parameters.AddWithValue("@messageImagesEnabled", settings.Messages.MessageImagesEnabled);
+            cmd.Parameters.AddWithValue("@voiceMessageEnabled", settings.Messages.VoiceMessageEnabled);
+            cmd.Parameters.AddWithValue("@videoMessageEnabled", settings.Messages.VideoMessageEnabled);
+            cmd.Parameters.AddWithValue("@editMessagesEnabled", settings.Messages.EditMessagesEnabled);
+            cmd.Parameters.AddWithValue("@deleteOwnMessagesEnabled", settings.Messages.DeleteOwnMessagesEnabled);
+            cmd.Parameters.AddWithValue("@deleteOtherMessagesEnabled", settings.Messages.DeleteOtherMessagesEnabled);
 
             await cmd.ExecuteNonQueryAsync(ct);
         }
@@ -182,9 +196,17 @@ namespace AIChatWebServer.Repositories.Implementations
                             new MemberSettings(
                                 reader.GetBoolean(reader.GetOrdinal("allow_add_by_link")),
                                 reader.GetBoolean(reader.GetOrdinal("allow_search_join"))),
+
                             new CallSettings(
                                 reader.GetBoolean(reader.GetOrdinal("call_enabled")),
-                                reader.GetBoolean(reader.GetOrdinal("video_enabled"))))
+                                reader.GetBoolean(reader.GetOrdinal("video_enabled"))),
+
+                            new MessageSettings(
+                                reader.GetBoolean(reader.GetOrdinal("message_files_enabled")),
+                                reader.GetBoolean(reader.GetOrdinal("message_images_enabled")),
+                                reader.GetBoolean(reader.GetOrdinal("voice_message_enabled")),
+                                reader.GetBoolean(reader.GetOrdinal("video_message_enabled")))
+                        )
                     };
                 }
 
@@ -202,7 +224,17 @@ namespace AIChatWebServer.Repositories.Implementations
                         reader.GetBoolean(reader.GetOrdinal("can_remove_users")),
                         reader.GetBoolean(reader.GetOrdinal("can_change_user_settings")),
                         reader.GetBoolean(reader.GetOrdinal("can_change_chat_settings")),
-                        reader.GetBoolean(reader.GetOrdinal("can_start_calls"))
+                        reader.GetBoolean(reader.GetOrdinal("can_start_calls")),
+                        new UserMessageSettings(
+                            reader.GetBoolean(reader.GetOrdinal("messages_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("message_files_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("message_images_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("voice_message_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("video_message_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("edit_messages_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("delete_own_messages_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("delete_other_messages_enabled"))
+                        )
                     );
 
                     chat.UsersWithData[userId] =
@@ -273,7 +305,11 @@ namespace AIChatWebServer.Repositories.Implementations
                 ("@allowAddByLink", settings.Members.AllowAddByLink),
                 ("@allowSearchJoin", settings.Members.AllowSearchJoin),
                 ("@callEnabled", settings.Calls.CallEnabled),
-                ("@videoEnabled", settings.Calls.VideoEnabled));
+                ("@videoEnabled", settings.Calls.VideoEnabled),
+                ("@messageFilesEnabled", settings.Messages.MessageFilesEnabled),
+                ("@messageImagesEnabled", settings.Messages.MessageImagesEnabled),
+                ("@voiceMessageEnabled", settings.Messages.VoiceMessageEnabled),
+                ("@videoMessageEnabled", settings.Messages.VideoMessageEnabled));
 
         public Task UpdateUserSettings(
             Guid chatId,
@@ -289,7 +325,15 @@ namespace AIChatWebServer.Repositories.Implementations
                 ("@canRemoveUsers", settings.CanRemoveUsers),
                 ("@canChangeUserSettings", settings.CanChangeUserSettings),
                 ("@canChangeChatSettings", settings.CanChangeChatSettings),
-                ("@canStartCalls", settings.CanStartCalls));
+                ("@canStartCalls", settings.CanStartCalls),
+                ("@messagesEnabled", settings.Messages.MessagesEnabled),
+                ("@messageFilesEnabled", settings.Messages.MessageFilesEnabled),
+                ("@messageImagesEnabled", settings.Messages.MessageImagesEnabled),
+                ("@voiceMessageEnabled", settings.Messages.VoiceMessageEnabled),
+                ("@videoMessageEnabled", settings.Messages.VideoMessageEnabled),
+                ("@editMessagesEnabled", settings.Messages.EditMessagesEnabled),
+                ("@deleteOwnMessagesEnabled", settings.Messages.DeleteOwnMessagesEnabled),
+                ("@deleteOtherMessagesEnabled", settings.Messages.DeleteOtherMessagesEnabled));
 
         private async Task ExecuteAsync(
             string sql,

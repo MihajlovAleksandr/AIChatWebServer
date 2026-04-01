@@ -13,6 +13,10 @@
                 cs.allow_search_join,
                 cs.call_enabled,
                 cs.video_enabled,
+                cs.message_files_enabled,
+                cs.message_images_enabled,
+                cs.voice_message_enabled,
+                cs.video_message_enabled,
 
                 uc.id,
                 uc.user_id,
@@ -25,7 +29,15 @@
                 ucs.can_remove_users,
                 ucs.can_change_user_settings,
                 ucs.can_change_chat_settings,
-                ucs.can_start_calls
+                ucs.can_start_calls,
+                ucs.messages_enabled,
+                ucs.message_files_enabled,
+                ucs.message_images_enabled,
+                ucs.voice_message_enabled,
+                ucs.video_message_enabled,
+                ucs.edit_messages_enabled,
+                ucs.delete_own_messages_enabled,
+                ucs.delete_other_messages_enabled
 
             FROM chats c
 
@@ -52,13 +64,21 @@
                 allow_add_by_link,
                 allow_search_join,
                 call_enabled,
-                video_enabled)
+                video_enabled,
+                message_files_enabled,
+                message_images_enabled,
+                voice_message_enabled,
+                video_message_enabled)
             VALUES (
                 @chatId,
                 @allowAddByLink,
                 @allowSearchJoin,
                 @callEnabled,
-                @videoEnabled);";
+                @videoEnabled,
+                @messageFilesEnabled,
+                @messageImagesEnabled,
+                @voiceMessageEnabled,
+                @videoMessageEnabled);";
 
         public const string AddUserToChat = @"
             INSERT INTO users_chats (id, user_id, chat_id, name)
@@ -82,7 +102,15 @@
                 can_remove_users,
                 can_change_user_settings,
                 can_change_chat_settings,
-                can_start_calls)
+                can_start_calls,
+                messages_enabled,
+                message_files_enabled,
+                message_images_enabled,
+                voice_message_enabled,
+                video_message_enabled,
+                edit_messages_enabled,
+                delete_own_messages_enabled,
+                delete_other_messages_enabled)
             VALUES (
                 @usersChatId,
                 @role,
@@ -91,8 +119,16 @@
                 @canRemoveUsers,
                 @canChangeUserSettings,
                 @canChangeChatSettings,
-                @canStartCalls)
-
+                @canStartCalls,
+                @messagesEnabled,
+                @messageFilesEnabled,
+                @messageImagesEnabled,
+                @voiceMessageEnabled,
+                @videoMessageEnabled,
+                @editMessagesEnabled,
+                @deleteOwnMessagesEnabled,
+                @deleteOtherMessagesEnabled)
+            
             ON CONFLICT (user_chat_id)
             DO UPDATE SET
                 role = EXCLUDED.role,
@@ -101,7 +137,15 @@
                 can_remove_users = EXCLUDED.can_remove_users,
                 can_change_user_settings = EXCLUDED.can_change_user_settings,
                 can_change_chat_settings = EXCLUDED.can_change_chat_settings,
-                can_start_calls = EXCLUDED.can_start_calls;";
+                can_start_calls = EXCLUDED.can_start_calls,
+                messages_enabled = EXCLUDED.messages_enabled,
+                message_files_enabled = EXCLUDED.message_files_enabled,
+                message_images_enabled = EXCLUDED.message_images_enabled,
+                voice_message_enabled = EXCLUDED.voice_message_enabled,
+                video_message_enabled = EXCLUDED.video_message_enabled,
+                edit_messages_enabled = EXCLUDED.edit_messages_enabled,
+                delete_own_messages_enabled = EXCLUDED.delete_own_messages_enabled,
+                delete_other_messages_enabled = EXCLUDED.delete_other_messages_enabled;";
 
         public const string UpdateChatName = @"
             UPDATE users_chats
@@ -128,7 +172,11 @@
             SET allow_add_by_link = @allowAddByLink,
                 allow_search_join = @allowSearchJoin,
                 call_enabled = @callEnabled,
-                video_enabled = @videoEnabled
+                video_enabled = @videoEnabled,
+                message_files_enabled = @messageFilesEnabled,
+                message_images_enabled = @messageImagesEnabled,
+                voice_message_enabled = @voiceMessageEnabled,
+                video_message_enabled = @videoMessageEnabled
             WHERE chat_id = @chatId;";
 
         public const string UpdateUserSettings = @"
@@ -139,7 +187,15 @@
                 can_remove_users = @canRemoveUsers,
                 can_change_user_settings = @canChangeUserSettings,
                 can_change_chat_settings = @canChangeChatSettings,
-                can_start_calls = @canStartCalls
+                can_start_calls = @canStartCalls,
+                messages_enabled = @messagesEnabled,
+                message_files_enabled = @messageFilesEnabled,
+                message_images_enabled = @messageImagesEnabled,
+                voice_message_enabled = @voiceMessageEnabled,
+                video_message_enabled = @videoMessageEnabled,
+                edit_messages_enabled = @editMessagesEnabled,
+                delete_own_messages_enabled = @deleteOwnMessagesEnabled,
+                delete_other_messages_enabled = @deleteOtherMessagesEnabled
             FROM users_chats uc
             WHERE ucs.user_chat_id = uc.id
               AND uc.chat_id = @chatId

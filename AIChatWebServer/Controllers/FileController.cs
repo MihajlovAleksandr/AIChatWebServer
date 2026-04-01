@@ -28,7 +28,7 @@ namespace AIChatWebServer.Controllers
                 tokenContext.UserId,
                 clientContext.Device, ct);
 
-            Guid fileId = await _fileService.UploadAsync(file, request.FileType, tokenContext.UserId, ct);
+            Guid fileId = await _fileService.UploadAsync(request.SessionId, request.FileId, file, request.FileType, tokenContext.UserId, ct);
 
             return Ok(fileId);
         }

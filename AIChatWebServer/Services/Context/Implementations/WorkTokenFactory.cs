@@ -13,6 +13,7 @@ namespace AIChatWebServer.Services.Context.Implementations
         {
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim(JwtClaimNames.TokenType, JwtTokenType.Work.ToString()),
                 new Claim("connectionId", connectionId.ToString()),

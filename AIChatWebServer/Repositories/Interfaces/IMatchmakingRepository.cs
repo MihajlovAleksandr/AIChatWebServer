@@ -1,5 +1,6 @@
 ﻿using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.Matchmaking;
+using AIChatWebServer.Repositories.Constants;
 using Npgsql;
 
 namespace AIChatWebServer.Repositories.Interfaces
@@ -36,7 +37,11 @@ namespace AIChatWebServer.Repositories.Interfaces
             Guid entryId,
             CancellationToken ct = default);
 
-        Task<MatchmakingEntry?> GetByUserAsync(
+        Task<MatchmakingEntry?> GetChatByUserAsync(
+                   Guid userId,
+                   CancellationToken ct = default);
+
+        Task<MatchmakingEntry?> GetGroupByUserAsync(
             Guid userId,
             CancellationToken ct = default);
 

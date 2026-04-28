@@ -3,6 +3,7 @@ using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Models.Notification;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Notifications;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

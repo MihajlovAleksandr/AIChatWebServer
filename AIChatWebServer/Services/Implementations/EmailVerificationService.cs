@@ -11,9 +11,10 @@ namespace AIChatWebServer.Services.Implementations
             ?? throw new ArgumentNullException(nameof(verificationCodeSender));
         private const string CodeType = "email";
 
-        public async Task GenerateAsync(string email, Guid userId, string langCode, CancellationToken ct = default)
+        public async Task GenerateAsync(string email, Guid connectionId, Guid userId, string langCode, CancellationToken ct = default)
         {
-            await _verificationCodeSender.SendAsync(email, await _verificationCodeService.GenerateAsync(userId, CodeType, ct), langCode, ct);
+            Console.WriteLine(await _verificationCodeService.GenerateAsync(userId, connectionId, CodeType, ct));
+            //await _verificationCodeSender.SendAsync(email, await _verificationCodeService.GenerateAsync(userId, CodeType, ct), langCode, ct);
         }
 
         public async Task VerifyAsync(Guid userId, string code, CancellationToken ct = default)

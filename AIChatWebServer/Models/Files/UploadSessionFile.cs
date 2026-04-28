@@ -22,13 +22,14 @@
         public DateTime UpdatedAt { get; } = updatedAt;
 
         public static UploadSessionFile Create(
+            Guid id,
             string expectedFileName,
             FileType expectedFileType,
             long expectedFileSize,
             DateTime now)
         {
             return new UploadSessionFile(
-                Guid.NewGuid(), expectedFileName,
+               id, expectedFileName,
                 expectedFileType, expectedFileSize, 
                 null, UploadSessionFileStatus.Pending, 
                 null, now, now);

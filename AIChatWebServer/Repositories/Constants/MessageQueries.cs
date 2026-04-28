@@ -74,4 +74,55 @@ public static class MessageQueries
         WHERE mf.message_id = ANY(@ids)
           AND f.deleted_status = FALSE;
     ";
+
+    public const string GetChanges = @"
+        WITH msg AS (
+            SELECT 
+                m.*,
+                BOOL_OR(ms.last_update > @since) AS has_status_update
+            FROM messages m
+            LEFT JOIN message_statuses ms 
+                ON ms.message_id = m.id
+            WHERE m.chat_id = ANY(@chatIds)
+            GROUP BY m.id
+        )
+        
+        SELECT
+            CASE
+                WHEN m.deleted_status = TRUE 
+                     AND m.last_update > @since
+                THEN 'deleted'
+        
+                WHEN m.time > @since 
+                     AND m.deleted_status = FALSE
+                THEN 'created'
+        
+                WHEN m.deleted_status = FALSE
+                     AND (
+                         (m.last_update > @since AND m.time <= @since)
+                         OR m.has_status_update
+                     )
+                THEN 'updated'
+        
+                ELSE NULL
+            END AS type,
+        
+            m.*
+        
+        FROM msg m
+        WHERE
+            (
+                m.deleted_status = TRUE 
+                AND m.last_update > @since
+            )
+            OR
+            (
+                m.deleted_status = FALSE
+                AND (
+                    m.time > @since
+                    OR m.last_update > @since
+                    OR m.has_status_update
+                )
+            );
+    ";
 }

@@ -7,16 +7,16 @@ using System.Security.Claims;
 
 namespace AIChatWebServer.Services.Context.Implementations
 {
-    public abstract class BaseTokenContext(IHttpContextAccessor httpContextAccessor) : ITokenContext
+    public abstract class BaseTokenContext(IUserContextAccessor userContextAccessor) : ITokenContext
     {
-
-        protected readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor
-                ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        protected readonly IUserContextAccessor _userContextAccessor = userContextAccessor
+            ?? throw new ArgumentNullException(nameof(userContextAccessor));
 
         public Guid UserId =>
             Guid.TryParse(TryGetClaimValue(ClaimTypes.NameIdentifier), out var guid)
                 ? guid
                 : throw new AuthTokenException(SessionErrors.InvalidToken);
+
         public DateTime ExpiresAtUtc
         {
             get
@@ -31,12 +31,12 @@ namespace AIChatWebServer.Services.Context.Implementations
                     .UtcDateTime;
             }
         }
+
         public abstract JwtTokenType TokenType { get; }
 
         protected string TryGetClaimValue(string claimType)
         {
-            return _httpContextAccessor.HttpContext?
-                .User?
+            return _userContextAccessor.User?
                 .FindFirst(claimType)?
                 .Value ?? throw new AuthTokenException(SessionErrors.InvalidToken);
         }

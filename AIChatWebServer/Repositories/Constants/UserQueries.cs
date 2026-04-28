@@ -168,5 +168,27 @@
                                      AND uc2.user_id != @userId
             WHERE u.id = uc2.user_id;
         ";
+
+        public const string UpsertAuthIdentity = @"
+            INSERT INTO auth_identities (
+                id,
+                user_id,
+                provider_code,
+                identifier,
+                secret,
+                created_at
+            )
+            VALUES (
+                @id,
+                @userId,
+                @providerCode,
+                @identifier,
+                @secret,
+                NOW()
+            )
+            ON CONFLICT (user_id, provider_code)
+            DO UPDATE SET
+                secret = EXCLUDED.secret;
+        ";
     }
 }

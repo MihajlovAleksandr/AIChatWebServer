@@ -2,6 +2,7 @@
 using AIChatWebServer.Models.Messages;
 using AIChatWebServer.Repositories.Constants;
 using AIChatWebServer.Repositories.Interfaces;
+using AIChatWebServer.Repositories.Models;
 using Npgsql;
 using System.Data;
 
@@ -373,6 +374,55 @@ namespace AIChatWebServer.Repositories.Implementations
             AddParameters(cmd, p);
 
             await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        public async Task<SyncMessagesResult> GetChangesAsync(
+            IReadOnlyCollection<Guid> chatIds,
+            DateTime since,
+            CancellationToken ct)
+        {
+            var created = new List<Message>();
+            var updated = new List<Message>();
+            var deleted = new List<Guid>();
+
+            await using var conn = await GetConnectionAsync(ct);
+            await using var cmd = new NpgsqlCommand(MessageQueries.GetChanges, conn);
+
+            cmd.Parameters.AddWithValue("@chatIds", chatIds);
+            cmd.Parameters.AddWithValue("@since", since);
+
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+            while (await reader.ReadAsync(ct))
+            {
+                var type = reader.GetString(0);
+
+                if (type == "deleted")
+                {
+                    deleted.Add(reader.GetGuid(1));
+                    continue;
+                }
+
+                var message = MapMessage(reader);
+
+                if (type == "created")
+                {
+                    created.Add(message);
+                }
+                else if (type == "updated")
+                {
+                    updated.Add(message);
+                }
+            }
+
+            var enrichedCreated = await EnrichAsync(created, ct);
+            var enrichedUpdated = await EnrichAsync(updated, ct);
+
+            return new SyncMessagesResult(
+                enrichedCreated,
+                enrichedUpdated,
+                deleted
+            );
         }
     }
 }

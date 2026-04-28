@@ -40,9 +40,6 @@ namespace AIChatWebServer.Models.Chats
             return $"Chat #{Id}\n{CreationTime} - {EndTime}\n";
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => HashCode.Combine(Id);
     }
 }

@@ -2,6 +2,6 @@
 {
     public interface ITokenContextFactory
     {
-        ITokenContext Create();
+        ITokenContext Create(IUserContextAccessor accessor);
     }
 }

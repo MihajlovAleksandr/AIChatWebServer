@@ -8,7 +8,7 @@ namespace AIChatWebServer.Services.Context.Implementations
     internal sealed class WorkTokenContext
         : BaseTokenContext, IWorkTokenContext
     {
-        public WorkTokenContext(IHttpContextAccessor accessor)
+        public WorkTokenContext(IUserContextAccessor accessor)
             : base(accessor)
         {
         }

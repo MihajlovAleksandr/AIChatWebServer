@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
@@ -22,7 +23,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
 
         public ChatType MatchType => ChatType.Human;
 
-        public async Task MatchUserAsync(
+        public async Task<ChatMatchmakingResult?> MatchUserAsync(
             Guid userId,
             string userPredicate,
             string chatName,
@@ -91,14 +92,15 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
 
             if (matchedUserId != null)
             {
-                await _chatRepository.CreateAsync(
+                return new ChatMatchmakingResult(await _chatRepository.CreateAsync(
                     MatchType,
                     new Dictionary<Guid, string>
                     {
                         { matchedUserId.Value, matchedChatName! },
                         { userId, chatName }
-                    }, ct);
+                    }, ct));
             }
+            return null;
         }
     }
 }

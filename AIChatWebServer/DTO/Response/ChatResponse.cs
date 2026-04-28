@@ -7,8 +7,9 @@ namespace AIChatWebServer.DTO.Response
     (
         [property: JsonPropertyName("id")] Guid Id,
         [property: JsonPropertyName("type")] ChatType ChatType,
+        [property: JsonPropertyName("joinTime")] DateTime JoinTime,
         [property: JsonPropertyName("endTime")] DateTime? EndTime,
-        [property: JsonPropertyName("users")] IEnumerable<Guid> Users,
+        [property: JsonPropertyName("users")] IEnumerable<Guid>? Users,
         [property: JsonPropertyName("name")] string Name
     );
 }

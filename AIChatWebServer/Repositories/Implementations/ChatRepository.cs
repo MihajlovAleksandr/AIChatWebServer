@@ -1,7 +1,9 @@
-﻿using AIChatWebServer.Models.Chats;
+﻿using AIChatWebServer.Models.AI;
+using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.ValidateSettings;
 using AIChatWebServer.Repositories.Constants;
 using AIChatWebServer.Repositories.Interfaces;
+using AIChatWebServer.Repositories.Models;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -239,6 +241,7 @@ namespace AIChatWebServer.Repositories.Implementations
 
                     chat.UsersWithData[userId] =
                         new ChatUserData(
+                            reader.GetGuid(reader.GetOrdinal("user_chat_id")),
                             reader.GetString(reader.GetOrdinal("name")),
                             reader.GetDateTime(reader.GetOrdinal("join_time")),
                             userSettings);
@@ -335,6 +338,160 @@ namespace AIChatWebServer.Repositories.Implementations
                 ("@deleteOwnMessagesEnabled", settings.Messages.DeleteOwnMessagesEnabled),
                 ("@deleteOtherMessagesEnabled", settings.Messages.DeleteOtherMessagesEnabled));
 
+        public async Task<IReadOnlyList<Chat>> GetByUserId(
+            Guid userId,
+            CancellationToken cancellationToken = default)
+        {
+            await using var conn = await GetConnectionAsync(cancellationToken);
+            await using var cmd = new NpgsqlCommand(ChatQueries.GetChatsByUserId, conn);
+
+            cmd.Parameters.AddWithValue("@userId", userId);
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+            var chats = new Dictionary<Guid, Chat>();
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var chatId = reader.GetGuid(reader.GetOrdinal("id"));
+
+                if (!chats.TryGetValue(chatId, out var chat))
+                {
+                    chat = new Chat
+                    {
+                        Id = chatId,
+                        CreationTime = reader.GetDateTime(reader.GetOrdinal("creation_time")),
+                        EndTime = reader.IsDBNull(reader.GetOrdinal("end_time"))
+                            ? null
+                            : reader.GetDateTime(reader.GetOrdinal("end_time")),
+                        Type = Enum.Parse<ChatType>(
+                            reader.GetString(reader.GetOrdinal("type"))),
+                        Settings = new ChatSettings(
+                            new MemberSettings(
+                                reader.GetBoolean(reader.GetOrdinal("allow_add_by_link")),
+                                reader.GetBoolean(reader.GetOrdinal("allow_search_join"))),
+
+                            new CallSettings(
+                                reader.GetBoolean(reader.GetOrdinal("call_enabled")),
+                                reader.GetBoolean(reader.GetOrdinal("video_enabled"))),
+
+                            new MessageSettings(
+                                reader.GetBoolean(reader.GetOrdinal("message_files_enabled")),
+                                reader.GetBoolean(reader.GetOrdinal("message_images_enabled")),
+                                reader.GetBoolean(reader.GetOrdinal("voice_message_enabled")),
+                                reader.GetBoolean(reader.GetOrdinal("video_message_enabled")))
+                        )
+                    };
+
+                    chats[chatId] = chat;
+                }
+
+                if (!reader.IsDBNull(reader.GetOrdinal("user_id")))
+                {
+                    var uId = reader.GetGuid(reader.GetOrdinal("user_id"));
+
+                    var role = Enum.Parse<ChatUserRole>(
+                        reader.GetString(reader.GetOrdinal("role")));
+
+                    var userSettings = new UserSettings(
+                        role,
+                        reader.GetBoolean(reader.GetOrdinal("can_add_users_by_search")),
+                        reader.GetBoolean(reader.GetOrdinal("can_add_user_by_link")),
+                        reader.GetBoolean(reader.GetOrdinal("can_remove_users")),
+                        reader.GetBoolean(reader.GetOrdinal("can_change_user_settings")),
+                        reader.GetBoolean(reader.GetOrdinal("can_change_chat_settings")),
+                        reader.GetBoolean(reader.GetOrdinal("can_start_calls")),
+                        new UserMessageSettings(
+                            reader.GetBoolean(reader.GetOrdinal("messages_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("message_files_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("message_images_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("voice_message_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("video_message_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("edit_messages_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("delete_own_messages_enabled")),
+                            reader.GetBoolean(reader.GetOrdinal("delete_other_messages_enabled"))
+                        )
+                    );
+
+                    chat.UsersWithData[uId] = new ChatUserData(
+                        reader.GetGuid(reader.GetOrdinal("user_chat_id")),
+                        reader.GetString(reader.GetOrdinal("name")),
+                        reader.GetDateTime(reader.GetOrdinal("join_time")),
+                        userSettings);
+                }
+            }
+
+            return chats.Values.ToList();
+        }
+
+
+        public async Task<SyncChatsResult> GetChangesAsync(
+            Guid userId,
+            DateTime since,
+            CancellationToken ct)
+        {
+            var createdIds = new HashSet<Guid>();
+            var updatedIds = new HashSet<Guid>();
+            var deletedIds = new HashSet<Guid>();
+
+            await using var conn = await GetConnectionAsync(ct);
+            await using var cmd = new NpgsqlCommand(ChatQueries.GetChatChanges, conn);
+
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@since", since);
+
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+            while (await reader.ReadAsync(ct))
+            {
+                var type = reader.GetString(0);
+                var id = reader.GetGuid(1);
+
+                switch (type)
+                {
+                    case "created":
+                        createdIds.Add(id);
+                        break;
+
+                    case "updated":
+                        if (!createdIds.Contains(id))
+                            updatedIds.Add(id);
+                        break;
+
+                    case "deleted":
+                        createdIds.Remove(id);
+                        updatedIds.Remove(id);
+                        deletedIds.Add(id);
+                        break;
+                }
+            }
+
+            var created = await LoadChats(createdIds, ct);
+            var updated = await LoadChats(updatedIds, ct);
+
+            return new SyncChatsResult(
+                created,
+                updated,
+                deletedIds.ToList()
+            );
+        }
+        
+        private async Task<IReadOnlyList<Chat>> LoadChats(
+            IReadOnlyCollection<Guid> ids,
+            CancellationToken ct)
+        {
+            var result = new List<Chat>();
+
+            foreach (var id in ids)
+            {
+                var chat = await GetById(id, ct);
+                if (chat != null)
+                    result.Add(chat);
+            }
+
+            return result;
+        }
+
         private async Task ExecuteAsync(
             string sql,
             CancellationToken ct,
@@ -348,5 +505,6 @@ namespace AIChatWebServer.Repositories.Implementations
 
             await cmd.ExecuteNonQueryAsync(ct);
         }
+
     }
 }

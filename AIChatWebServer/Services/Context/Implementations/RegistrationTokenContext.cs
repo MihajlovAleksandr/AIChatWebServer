@@ -6,7 +6,7 @@ using AIChatWebServer.Utils.Errors;
 
 namespace AIChatWebServer.Services.Context.Implementations
 {
-    public sealed class RegistrationTokenContext(IHttpContextAccessor accessor)
+    public sealed class RegistrationTokenContext(IUserContextAccessor accessor)
                 : BaseTokenContext(accessor), IRegistrationTokenContext
     {
         public override JwtTokenType TokenType => JwtTokenType.Registration;

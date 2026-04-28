@@ -1,4 +1,5 @@
-﻿using AIChatWebServer.Services.Context.Interfaces;
+﻿using AIChatWebServer.Repositories.Models;
+using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 
 namespace AIChatWebServer.Services.Implementations
@@ -11,14 +12,19 @@ namespace AIChatWebServer.Services.Implementations
             ?? throw new ArgumentNullException(nameof(entryTokenFactory));
         private const string CodeType = "entry_token_code";
 
-        public async Task<string> GenerateAsync(Guid userId, CancellationToken ct = default)
+        public async Task<string> GenerateAsync(Guid connectionId, Guid userId, CancellationToken ct = default)
         {
-            return _entryTokenFactory.Create(userId, await _verificationCodeService.GenerateAsync(userId, CodeType, ct));
+            return _entryTokenFactory.Create(userId, await _verificationCodeService.GenerateAsync(userId, connectionId, CodeType, ct));
         }
 
-        public async Task VerifyAsync(Guid userId, string code, CancellationToken ct = default)
+        public async Task<VerificationCodeRecord> VerifyAsync(Guid userId, string code, CancellationToken ct = default)
         {
-            await _verificationCodeService.VerifyAsync(userId, CodeType, code, ct);
+            return await _verificationCodeService.VerifyAsync(userId, CodeType, code, ct);
+        }
+
+        public async Task DeleteAsync(Guid userId, CancellationToken ct = default)
+        {
+            await _verificationCodeService.DeleteAsync(userId, CodeType, ct);
         }
     }
 }

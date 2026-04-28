@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.DTO.Request;
+using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Exceptions.Implementations.Chat;
 using AIChatWebServer.Services.Context.Interfaces;
@@ -13,10 +14,12 @@ namespace AIChatWebServer.Controllers
     [Route("api/matchmaking/direct")]
     public class DirectMatchmakingController(
         IConnectionValidator connectionValidator,
-        IDirectMatchmakingService directMatchmakingService) : ControllerBase
+        IDirectMatchmakingService directMatchmakingService,
+        IChatGroupNotifier notifier) : ControllerBase
     {
         private readonly IConnectionValidator _connectionValidator = connectionValidator;
         private readonly IDirectMatchmakingService _directMatchmakingService = directMatchmakingService;
+        private readonly IChatGroupNotifier _notifier = notifier;
 
         [Authorize]
         [HttpPost]
@@ -30,15 +33,22 @@ namespace AIChatWebServer.Controllers
                 && matchmakingRequest.ChatType != ChatType.Random)
                 throw new ChatTypeNotSupportedException(matchmakingRequest.ChatType);
 
+            ct = CancellationToken.None;
+
             await _connectionValidator.ValidateConnectionAsync(
                 workTokenContext.ConnectionId, 
                 workTokenContext.UserId, 
                 clientContext.Device, ct);
 
-            await _directMatchmakingService.MatchUserAsync(matchmakingRequest.ChatType,
+            var result = await _directMatchmakingService.MatchUserAsync(matchmakingRequest.ChatType,
                 workTokenContext.UserId,
                 matchmakingRequest.ChatMatchPredicate,
                 matchmakingRequest.ChatName, ct);
+
+            if (result != null)
+                _ = _notifier.ChatCreated(result.ChatId, null, ct);
+            else
+                _ = _notifier.ChatSearchingStatusUpdated(workTokenContext.UserId, workTokenContext.ConnectionId, true);
 
             return Ok();
         }
@@ -60,7 +70,8 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpDelete]
-        public async Task<IActionResult> CancelSearch([FromServices] IWorkTokenContext workTokenContext,
+        public async Task<IActionResult> CancelSearch(
+            [FromServices] IWorkTokenContext workTokenContext,
             [FromServices] IClientContext clientContext,
             CancellationToken ct)
         {
@@ -70,6 +81,8 @@ namespace AIChatWebServer.Controllers
                 clientContext.Device, ct);
 
             await _directMatchmakingService.CancelSearch(workTokenContext.UserId, ct);
+
+            _ = _notifier.ChatSearchingStatusUpdated(workTokenContext.UserId, workTokenContext.ConnectionId, false);
 
             return Ok();
         }

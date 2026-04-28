@@ -1,5 +1,7 @@
 ﻿using AIChatWebServer.DTO.Request;
+using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Exceptions.Implementations.Chat.Matchmaking;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
@@ -13,12 +15,13 @@ namespace AIChatWebServer.Controllers
     [Route("api/matchmaking/group")]
     public class GroupMatchmakingController(
         IConnectionValidator connectionValidator,
-        IGroupMatchmakingService groupMatchmakingService
+        IGroupMatchmakingService groupMatchmakingService,
+        IChatGroupNotifier notifier
         ) : ControllerBase
     {
         private readonly IConnectionValidator _connectionValidator = connectionValidator;
         private readonly IGroupMatchmakingService _groupMatchmakingService = groupMatchmakingService;
-
+        private readonly IChatGroupNotifier _notifier = notifier;
 
         [Authorize]
         [HttpPost("user")]
@@ -33,7 +36,15 @@ namespace AIChatWebServer.Controllers
                 workTokenContext.UserId,
                 clientContext.Device, ct);
 
-            await _groupMatchmakingService.MatchUserAsync(workTokenContext.UserId, searchChatRequest.ChatMatchPredicate, searchChatRequest.ChatName, ct);
+            GroupMatchmakingResult? result = 
+                await _groupMatchmakingService.MatchUserAsync(
+                    workTokenContext.UserId,
+                    searchChatRequest.ChatMatchPredicate,
+                    searchChatRequest.ChatName, ct) as GroupMatchmakingResult;
+            if (result != null)
+                _ = _notifier.UserAdded(result.ChatId, result.UserId, ct);
+            else
+                _ = _notifier.GroupSearchingStatusUpdated(workTokenContext.UserId, workTokenContext.ConnectionId, true, null);
 
             return Ok();
         }
@@ -54,12 +65,17 @@ namespace AIChatWebServer.Controllers
                 workTokenContext.UserId,
                 clientContext.Device, ct);
 
-            await _groupMatchmakingService.MatchChatAsync(
+            GroupMatchmakingResult? result = await _groupMatchmakingService.MatchChatAsync(
                 searchUserRequest.ChatId,
-                new StartSearchChatAction(workTokenContext.UserId,
+                new StartSearchChatAction(
+                    workTokenContext.UserId,
                     searchUserRequest.ChatMatchPredicate,
-                    searchUserRequest.Slots),
-                ct);
+                    searchUserRequest.Slots), ct) as GroupMatchmakingResult;
+
+            if (result != null)
+                _ = _notifier.UserAdded(result.ChatId, result.UserId, ct);
+            else
+                _ = _notifier.GroupSearchingStatusUpdated(workTokenContext.UserId, workTokenContext.ConnectionId, true, searchUserRequest.ChatId);
 
             return Ok();
         }
@@ -81,7 +97,8 @@ namespace AIChatWebServer.Controllers
 
         [Authorize]
         [HttpDelete]
-        public async Task<IActionResult> CancelSearch([FromServices] IWorkTokenContext workTokenContext,
+        public async Task<IActionResult> CancelSearch(
+            [FromServices] IWorkTokenContext workTokenContext,
             [FromServices] IClientContext clientContext,
             CancellationToken ct)
         {
@@ -91,6 +108,7 @@ namespace AIChatWebServer.Controllers
                 clientContext.Device, ct);
 
             await _groupMatchmakingService.CancelSearch(workTokenContext.UserId, ct);
+            _ = _notifier.GroupSearchingStatusUpdated(workTokenContext.UserId, workTokenContext.ConnectionId, false, null);
 
             return Ok();
         }

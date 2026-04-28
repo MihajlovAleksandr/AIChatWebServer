@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
@@ -22,7 +23,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
 
         public ChatType MatchType => ChatType.Group;
 
-        public async Task MatchUserAsync(Guid userId, string userPredicate, string chatName, CancellationToken ct)
+        public async Task<ChatMatchmakingResult?> MatchUserAsync(Guid userId, string userPredicate, string chatName, CancellationToken ct)
         {
             IUserMatchPredicate predicate =
                 _userMatchPredicateFactory.Create(userPredicate);
@@ -53,7 +54,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
                     10,
                     ct);
 
-            (Guid chatId, Guid UserId)? chatMatch = null;
+            (Guid chatId, Guid userId)? chatMatch = null;
 
             foreach (var candidate in candidates)
             {
@@ -82,12 +83,15 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
             if (chatMatch != null)
             {
                 await _chatService.ExecuteAction(chatMatch.Value.chatId, 
-                    new AddUserAction(chatMatch.Value.UserId, userId,
+                    new AddUserAction(chatMatch.Value.userId, userId,
                     ChatSearchType.Search, ChatUserRole.Member, chatName), ct);
+
+                return new GroupMatchmakingResult(chatMatch.Value.chatId, chatMatch.Value.userId);
             }
+            return null;
         }
 
-        public async Task MatchChatAsync(Guid userId, Guid chatId, int slot, string userPredicate, CancellationToken ct)
+        public async Task<ChatMatchmakingResult?> MatchChatAsync(Guid userId, Guid chatId, int slot, string userPredicate, CancellationToken ct)
         {
             IUserMatchPredicate predicate =
                 _userMatchPredicateFactory.Create(userPredicate);
@@ -149,7 +153,11 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
             {
                 await _chatService.ExecuteAction(chatId,
                     new AddUserAction(userId, userMatch.Value.userId, ChatSearchType.Search, ChatUserRole.Member, userMatch.Value.chatName), ct);
+
+                return new GroupMatchmakingResult(chatId, userId);
             }
+
+            return null;
         }
     }
 }

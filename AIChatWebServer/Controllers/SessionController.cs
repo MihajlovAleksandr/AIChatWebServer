@@ -1,10 +1,12 @@
 ﻿using AIChatWebServer.DTO.Request;
+using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Exceptions.Implementations.Auth;
-using AIChatWebServer.Models.Exceptions.Implementations.Connection;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ConnectionInfo = AIChatWebServer.Models.Connection.ConnectionInfo;
 
 namespace AIChatWebServer.Controllers
 {
@@ -14,13 +16,15 @@ namespace AIChatWebServer.Controllers
         IConnectionService connectionService,
         INotificationService notificationService,
         IConnectionValidator connectionValidator,
-        IWorkTokenFactory workTokenFactory)
+        IWorkTokenFactory workTokenFactory,
+        IDisconnectService disconnectedService)
         : ControllerBase
     {
         private readonly IConnectionService _connectionService = connectionService;
         private readonly INotificationService _notificationService = notificationService;
         private readonly IConnectionValidator _connectionValidator = connectionValidator;
         private readonly IWorkTokenFactory _workTokenFactory = workTokenFactory;
+        private readonly IDisconnectService _disconnectedService = disconnectedService;
 
         [HttpGet("connect")]
         public async Task<IActionResult> Connect(
@@ -34,12 +38,11 @@ namespace AIChatWebServer.Controllers
                 tokenContext.ExpiresAtUtc <
                 DateTime.UtcNow.AddDays(5);
 
-
             if (!needRefresh)
             {
                 return Ok(new
                 {
-                    HubUrl = "/ws/connect",
+                    HubUrl = "/ws/chat",
                     RefreshedToken = false,
                     tokenContext.ConnectionId,
                     tokenContext.UserId
@@ -54,24 +57,32 @@ namespace AIChatWebServer.Controllers
 
             return Ok(new
             {
-                HubUrl = "/ws/connect",
+                HubUrl = "/ws/chat",
                 Token = newToken,
                 RefreshedToken = true,
                 tokenContext.ConnectionId,
-                tokenContext.UserId
+                tokenContext.UserId,
             });
         }
         [Authorize]
-        [HttpDelete("{connectionId}")]
+        [HttpDelete("{connectionId?}")]
         public async Task<IActionResult> DeleteConnection(
-            Guid connectionId,
-            [FromServices]IWorkTokenContext tokenContext,
-            [FromServices]IClientContext clientContext,
+            Guid? connectionId,
+            [FromServices] IWorkTokenContext tokenContext,
+            [FromServices] IClientContext clientContext,
             CancellationToken ct)
         {
-            await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, ct);
+            Guid effectiveConnectionId = connectionId ?? tokenContext.ConnectionId;
 
-            Models.Connection.ConnectionInfo connectionInfo = await _connectionService.GetConnectionInfoAsync(connectionId, ct);
+            await _connectionValidator.ValidateConnectionAsync(
+                tokenContext.ConnectionId,
+                tokenContext.UserId,
+                clientContext.Device,
+                ct);
+
+            ConnectionInfo connectionInfo = await _connectionService.GetConnectionInfoAsync(
+                effectiveConnectionId,
+                ct);
 
             if (connectionInfo.UserId != tokenContext.UserId)
             {
@@ -80,9 +91,14 @@ namespace AIChatWebServer.Controllers
                     tokenContext.UserId);
             }
 
-            await _connectionService.RemoveConnectionAsync(connectionId, ct);
+            await _connectionService.RemoveConnectionAsync(
+                effectiveConnectionId,
+                ct);
+            await _disconnectedService.DisconnectAync(effectiveConnectionId, tokenContext.UserId, tokenContext.ConnectionId, ct);
+
             return Ok();
         }
+       
 
         [Authorize]
         [HttpPut("token")]

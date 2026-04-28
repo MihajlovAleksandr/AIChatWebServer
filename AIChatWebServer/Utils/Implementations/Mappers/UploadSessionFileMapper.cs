@@ -10,6 +10,7 @@ namespace AIChatWebServer.Utils.Implementations.Mappers
         public UploadSessionFile ToModel(UploadSessionFileRequest request)
         {
             return UploadSessionFile.Create(
+                request.Id,
                 request.ExpectedFileName, 
                 request.ExpectedFileType, 
                 request.ExpectedFileSize, 

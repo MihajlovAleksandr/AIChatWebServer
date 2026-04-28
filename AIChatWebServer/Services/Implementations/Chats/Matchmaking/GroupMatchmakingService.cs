@@ -1,5 +1,7 @@
 ﻿using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Exceptions.Implementations.Chat.Matchmaking;
+using AIChatWebServer.Models.Sync;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
 using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
@@ -21,7 +23,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
 
         public async Task CancelSearch(Guid userId, CancellationToken ct = default)
         {
-            var matchmakingEntity = await _matchmakingRepository.GetByUserAsync(userId, ct);
+            var matchmakingEntity = await _matchmakingRepository.GetGroupByUserAsync(userId, ct);
             if (matchmakingEntity == null)
             {
                 var groupSearchEntity = await _groupChatSearchRepository.GetByUserAsync(userId, ct)
@@ -36,11 +38,11 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
         public async Task<bool> IsSearching(Guid userId, CancellationToken ct = default)
         {
             return 
-                await _matchmakingRepository.GetByUserAsync(userId, ct) != null 
+                await _matchmakingRepository.GetGroupByUserAsync(userId, ct) != null 
                 || await _groupChatSearchRepository.GetByUserAsync(userId, ct) != null;
         }
 
-        public async Task MatchUserAsync(
+        public async Task<ChatMatchmakingResult?> MatchUserAsync(
             Guid userId,
             string userPredicate,
             string chatName,
@@ -49,10 +51,10 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
             if (await IsSearching(userId, ct))
                 throw new UserAlreadySearchingChatException(userId);
 
-            await _chatAddUserStrategy.MatchUserAsync(userId, userPredicate, chatName, ct);
+            return await _chatAddUserStrategy.MatchUserAsync(userId, userPredicate, chatName, ct);
         }
 
-        public async Task MatchChatAsync(Guid chatId, StartSearchChatAction action, CancellationToken ct = default)
+        public async Task<ChatMatchmakingResult?> MatchChatAsync(Guid chatId, StartSearchChatAction action, CancellationToken ct = default)
         {
             if (await IsSearching(action.UserId, ct))
                 throw new UserAlreadySearchingChatException(action.UserId);
@@ -61,7 +63,18 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
 
             _conversationActionValidator.Validate(chat, action);
 
-            await _chatAddUserStrategy.MatchChatAsync(action.UserId, chatId, action.Slots, action.UserPredicate, ct);
+            return await _chatAddUserStrategy.MatchChatAsync(action.UserId, chatId, action.Slots, action.UserPredicate, ct);
+        }
+
+        public async Task<SyncGroupMatchmaking> SyncAsync(Guid userId, CancellationToken ct = default)
+        {
+            MatchmakingEntry? matchmakingEntry = await _matchmakingRepository.GetGroupByUserAsync(userId, ct);
+            if(matchmakingEntry != null)
+                return new SyncGroupMatchmaking(true, null);
+            GroupChatSearchEntry? groupChatSearchEntry = await _groupChatSearchRepository.GetByUserAsync(userId, ct);
+            if (groupChatSearchEntry != null)
+                return new SyncGroupMatchmaking(true, groupChatSearchEntry.ChatId);
+            return new SyncGroupMatchmaking(false, null);
         }
     }
 }

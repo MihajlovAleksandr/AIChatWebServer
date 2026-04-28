@@ -1,27 +1,20 @@
 ﻿using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Repositories.Interfaces;
-using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Interfaces.Chats.RandomChatGame;
 
 namespace AIChatWebServer.Services.Implementations.Chats.RandomChatGame
 {
-    public class RandomChatService : IRandomChatService
+    public class RandomChatService(IServiceScopeFactory scopeFactory, IConfiguration configuration) : IRandomChatService
     {
         public event Action<Chat>? OnChatEnded;
 
         private readonly PriorityQueue<Chat, DateTime> _chats = new();
-        private readonly IServiceScopeFactory _scopeFactory;
-        private readonly int _roundTime;
+        private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+        private readonly int _roundTime = int.Parse(configuration["RandomChatSettings:RoundTimeMinutes"]
+                ?? throw new ArgumentException("Random Chat Round Time is not configured."));
         private readonly Lock _lock = new();
 
         private CancellationTokenSource? _timerCts;
-
-        public RandomChatService(IServiceScopeFactory scopeFactory, IConfiguration configuration)
-        {
-            _scopeFactory = scopeFactory;
-
-            _roundTime = int.Parse(configuration["RandomChatSettings:RoundTimeMinutes"]
-                ?? throw new ArgumentException("Random Chat Round Time is not configured."));
-        }
 
         public async Task Create(Guid first, Guid second, Guid chatId, CancellationToken ct)
         {
@@ -64,6 +57,11 @@ namespace AIChatWebServer.Services.Implementations.Chats.RandomChatGame
             {
                 RescheduleTimer();
             }
+        }
+
+        public Task SendMessage()
+        {
+            return Task.CompletedTask;
         }
 
         private void RescheduleTimer()

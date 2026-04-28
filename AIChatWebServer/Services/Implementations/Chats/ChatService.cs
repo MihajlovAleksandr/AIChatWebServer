@@ -1,7 +1,10 @@
-﻿using AIChatWebServer.Models.Chats;
+﻿using AIChatWebServer.Models.AI;
+using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Exceptions.Implementations.Chat;
+using AIChatWebServer.Models.Sync;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
+using System.Collections;
 
 namespace AIChatWebServer.Services.Implementations.Chats
 {
@@ -62,6 +65,27 @@ namespace AIChatWebServer.Services.Implementations.Chats
 
                 _ => throw new NotSupportedException()
             };
+        }
+
+        public async Task<IReadOnlyList<Chat>> GetByUserId(
+            Guid userId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _chatRepository.GetByUserId(userId, cancellationToken);
+        }
+
+        public async Task<SyncChats> SyncAsync(
+            Guid userId,
+            DateTime since,
+            CancellationToken ct)
+        {
+            var changes = await _chatRepository.GetChangesAsync(userId, since, ct);
+
+            return new SyncChats(
+                changes.Created.Select(c=>new ChatWithUserContext(c, userId)).ToList(),
+                changes.Updated.Select(c => new ChatWithUserContext(c, userId)).ToList(),
+                changes.Deleted
+            );
         }
     }
 }

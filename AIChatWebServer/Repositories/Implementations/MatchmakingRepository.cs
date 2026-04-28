@@ -115,13 +115,26 @@ namespace AIChatWebServer.Repositories.Implementations
                 ct,
                 ("@id", entryId));
 
-        public async Task<MatchmakingEntry?> GetByUserAsync(
+        public async Task<MatchmakingEntry?> GetChatByUserAsync(
             Guid userId,
             CancellationToken ct = default)
         {
             var list =
                 await ReadAsync(
-                    MatchmakingQueries.GetByUser,
+                    MatchmakingQueries.GetChatByUser,
+                    ct,
+                    ("@userId", userId));
+
+            return list.FirstOrDefault();
+        }
+
+        public async Task<MatchmakingEntry?> GetGroupByUserAsync(
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            var list =
+                await ReadAsync(
+                    MatchmakingQueries.GetGroupByUser,
                     ct,
                     ("@userId", userId));
 

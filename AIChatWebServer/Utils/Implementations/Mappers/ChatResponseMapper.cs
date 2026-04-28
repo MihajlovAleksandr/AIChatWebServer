@@ -9,12 +9,18 @@ namespace AIChatWebServer.Utils.Implementations.Mappers
     {
         public ChatResponse ToResponse(ChatWithUserContext model)
         {
-            if(!model.Chat.UsersWithData.TryGetValue(model.UserId, out ChatUserData? chatUserData))
+            if (!model.Chat.UsersWithData.TryGetValue(model.UserId, out ChatUserData? chatUserData))
             {
                 throw new UserNotInChatException(model.Chat.Id, model.UserId);
             }
 
-            return new ChatResponse(model.Chat.Id, model.Chat.Type, model.Chat.EndTime, model.Chat.UsersWithData.Keys, chatUserData.Name);
+            IEnumerable<Guid>? users;
+            if (model.Chat.Type == ChatType.Random || model.Chat.Type == ChatType.AI)
+                users = null;
+            else
+                users = model.Chat.UsersWithData.Keys;
+
+            return new ChatResponse(model.Chat.Id, model.Chat.Type, chatUserData.JoinTime, model.Chat.EndTime, users, chatUserData.Name);
         }
     }
 }

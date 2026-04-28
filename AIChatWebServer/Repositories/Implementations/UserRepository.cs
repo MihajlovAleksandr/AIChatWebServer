@@ -279,7 +279,28 @@ namespace AIChatWebServer.Repositories.Implementations
                 r.GetDateTime(4),
                 r.GetDateTime(5));
         }
+        public async Task UpsertAuthIdentityAsync(
+            Guid userId,
+            AuthIdentity authIdentity,
+            CancellationToken ct = default)
+        {
 
+            await using var conn =
+                await GetConnectionAsync(ct);
+
+            await using var cmd =
+                new NpgsqlCommand(UserQueries.UpsertAuthIdentity, conn);
+
+            cmd.Parameters.AddWithValue("@id", Guid.NewGuid());
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@providerCode", authIdentity.Provider.Code);
+            cmd.Parameters.AddWithValue("@identifier", authIdentity.Identifier);
+            cmd.Parameters.AddWithValue(
+                "@secret",
+                authIdentity.Secret ?? (object)DBNull.Value);
+
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
         private async Task<User?> GetSingleAsync(
             string sql,
             CancellationToken ct,

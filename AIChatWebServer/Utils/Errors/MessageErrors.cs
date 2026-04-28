@@ -28,5 +28,8 @@
 
         public static readonly IErrorCode CannotUpdateOwnMessageStatus =
             new MessageErrors("CANNOT_UPDATE_OWN_MESSAGE_STATUS");
+
+        public static readonly IErrorCode MessageDoesNotBelongToChat =
+            new MessageErrors("MESSAGE_DOES_NOT_BELONG_TO_CHAT");
     }
 }

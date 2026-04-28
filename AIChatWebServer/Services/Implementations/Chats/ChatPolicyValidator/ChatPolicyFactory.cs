@@ -6,6 +6,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
 {
     public class ChatPolicyFactory : IChatPolicyFactory
     {
+        AlternateTextOnlySendMessageRule alternateTextOnlySendMessageRule = new AlternateTextOnlySendMessageRule();
+
         public IChatRulesValidator Create(ChatType chatType)
         {
             return chatType switch
@@ -46,7 +48,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator
                     { typeof(InviteUserToChatAction), new InviteUserForbiddenRule() },
                     { typeof(StartSearchChatAction), new StartSearchForbiddenRule() },
                     { typeof(PrepareSendMessageAction), new TextOnlyPrepareSendMessageRule() },
-                    { typeof(SendMessageAction), new TextOnlySendMessageRule() },
+                    { typeof(SendMessageAction),  alternateTextOnlySendMessageRule },
                     { typeof(EditMessageAction), new EditMessageForbiddenRule() },
                     { typeof(DeleteMessageAction), new DeleteMessageForbiddenRule() }
                 }),

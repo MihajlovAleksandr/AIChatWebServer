@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Exceptions.Implementations.Chat;
 using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
 
@@ -8,10 +9,10 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
     {
         private readonly IReadOnlyDictionary<ChatType, IChatMatchStrategy> _chatMatchStrategies = chatMatchStrategies;
 
-        public async Task MatchUserAsync(ChatType chatType, Guid userId, string userPredicate, string chatName, CancellationToken ct)
+        public async Task<ChatMatchmakingResult?> MatchUserAsync(ChatType chatType, Guid userId, string userPredicate, string chatName, CancellationToken ct)
         {
             if(_chatMatchStrategies.TryGetValue(chatType, out IChatMatchStrategy? chatMatchStrategy)){
-               await chatMatchStrategy.MatchUserAsync(userId, userPredicate, chatName, ct);
+               return await chatMatchStrategy.MatchUserAsync(userId, userPredicate, chatName, ct);
             }
             else
             {

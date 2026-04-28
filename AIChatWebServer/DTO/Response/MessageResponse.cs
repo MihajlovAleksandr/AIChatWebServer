@@ -7,7 +7,7 @@ namespace AIChatWebServer.DTO.Response
     (
         [property: JsonPropertyName("id")] Guid Id,
         [property: JsonPropertyName("chatId")] Guid ChatId,
-        [property: JsonPropertyName("userId")] Guid UserId,
+        [property: JsonPropertyName("userId")] Guid? UserId,
         [property: JsonPropertyName("text")] string Text,
         [property: JsonPropertyName("time")] DateTime Time,
         [property: JsonPropertyName("lastUpdate")] DateTime LastUpdate,

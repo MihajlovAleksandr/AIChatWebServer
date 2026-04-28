@@ -9,5 +9,7 @@ namespace AIChatWebServer.DTO.Request
         public required IReadOnlyCollection<Guid> Ids { get; init; }
         [JsonPropertyName("status")] 
         public required MessageStatus Status { get; init; }
+        [JsonPropertyName("chatId")]
+        public required Guid ChatId { get; init; }
     }
 }

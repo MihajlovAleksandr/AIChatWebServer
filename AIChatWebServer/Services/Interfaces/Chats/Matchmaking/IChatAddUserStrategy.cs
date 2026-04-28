@@ -1,12 +1,14 @@
-﻿namespace AIChatWebServer.Services.Interfaces.Chats.Matchmaking
+﻿using AIChatWebServer.Models.Chats.Matchmaking;
+
+namespace AIChatWebServer.Services.Interfaces.Chats.Matchmaking
 {
     public interface IChatAddUserStrategy : IChatMatchStrategy
     {
-        Task MatchChatAsync(
+        Task<ChatMatchmakingResult?> MatchChatAsync(
             Guid userId, 
             Guid chatId, 
             int slot, 
-            string userPredicate,
+            string userPredicate, 
             CancellationToken ct);
     }
 }

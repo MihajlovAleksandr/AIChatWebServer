@@ -4,7 +4,7 @@
     {
         public const string AddConnection = @"
             INSERT INTO connections (device, user_id, last_connection) 
-            VALUES (@Device, @UserId, NOW())
+            VALUES (@Device, @UserId, NULL)
             RETURNING id;";
 
         public const string GetConnectionInfo = @"

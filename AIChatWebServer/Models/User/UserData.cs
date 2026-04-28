@@ -32,7 +32,7 @@
 
         public override string ToString()
         {
-            return $"UserData {{{Id}}}\n{Gender}{Age}\n{Name}";
+            return $"{Gender}{Age} {Name}";
         }
     }
 }

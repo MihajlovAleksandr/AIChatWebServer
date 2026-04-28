@@ -114,6 +114,9 @@
         public static readonly IErrorCode MessageModificationForbiddenByPolicy =
             new ChatErrors("MESSAGE_MODIFICATION_FORBIDDEN_BY_POLICY");
 
+        public static readonly IErrorCode ConsecutiveMessagesFromSameUserForbiddenByPolicy =
+            new ChatErrors("CONSECUTIVE_MESSAGES_FROM_SAME_USER_FORBIDDEN_BY_POLICY");
+
         public static readonly IErrorCode ChatMessageModificationDisabledByUserSettings =
             new ChatErrors("CHAT_MESSAGE_MODIFICATION_DISABLED_BY_USER_SETTINGS");
 

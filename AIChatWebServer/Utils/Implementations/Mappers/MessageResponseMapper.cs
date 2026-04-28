@@ -9,10 +9,13 @@ namespace AIChatWebServer.Utils.Implementations.Mappers
         private readonly ICollectionResponseMapper<MessageReply, MessageReplyResponse> _repliesMapper = repliesMapper;
         public MessageResponse ToResponse(MessageContext model)
         {
+            Guid? userId = null;
             IReadOnlyDictionary<Guid, MessageStatus> statuses;
-            if (model.CanSeeOtherUsersStatuses && model.Message.UserId == model.UserId)
+            if (model.CanSeeOtherUsersStatuses || model.Message.UserId == model.UserId)
             {
                 statuses = model.Message.Statuses;
+                userId = model.Message.UserId;
+                
             }
             else
             {
@@ -28,7 +31,7 @@ namespace AIChatWebServer.Utils.Implementations.Mappers
             return new MessageResponse(
                 model.Message.Id, 
                 model.Message.ChatId, 
-                model.Message.UserId, 
+                userId, 
                 model.Message.Text, 
                 model.Message.Time,
                 model.Message.LastUpdate, 

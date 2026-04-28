@@ -1,5 +1,6 @@
 ﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth.VerificationCode;
 using AIChatWebServer.Repositories.Interfaces;
+using AIChatWebServer.Repositories.Models;
 using AIChatWebServer.Services.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
@@ -26,6 +27,7 @@ namespace AIChatWebServer.Services.Implementations
 
         public async Task<string> GenerateAsync(
             Guid userId,
+            Guid connectionId,
             string type,
             CancellationToken ct = default)
         {
@@ -35,6 +37,7 @@ namespace AIChatWebServer.Services.Implementations
 
             await _repository.UpsertAsync(
                 userId,
+                connectionId,
                 type,
                 hash,
                 DateTime.UtcNow.Add(CodeTtl),
@@ -43,7 +46,7 @@ namespace AIChatWebServer.Services.Implementations
             return code;
         }
 
-        public async Task VerifyAsync(
+        public async Task<VerificationCodeRecord> VerifyAsync(
             Guid userId,
             string type,
             string code,
@@ -68,7 +71,18 @@ namespace AIChatWebServer.Services.Implementations
             }
 
             await _repository
-                .DeleteAsync(record.Id, ct);
+                .DeleteAsync(record.Id, type, ct);
+            return record;
+        }
+
+        public async Task DeleteAsync(
+            Guid userId,
+            string type,
+            CancellationToken ct = default)
+        {
+            var code = await _repository
+                    .GetAsync(userId, type, ct) ?? throw new VerificationCodeNotFoundException(userId, type);
+            await _repository.DeleteAsync(code.Id, type, ct);
         }
 
         private static string GenerateCode()

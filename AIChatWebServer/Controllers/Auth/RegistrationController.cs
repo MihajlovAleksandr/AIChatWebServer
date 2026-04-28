@@ -65,6 +65,7 @@ namespace AIChatWebServer.Controllers.Auth
 
             await _emailVerificationService.GenerateAsync(
                 request.Identifier.Trim(),
+                connectionId,
                 userId,
                 context.LanguageCode,
                 ct);

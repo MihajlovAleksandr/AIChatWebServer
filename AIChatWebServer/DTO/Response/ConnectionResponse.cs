@@ -6,6 +6,6 @@ namespace AIChatWebServer.DTO.Response
         [property: JsonPropertyName("id")] Guid Id,
         [property: JsonPropertyName("userId")] Guid UserId,
         [property: JsonPropertyName("device")] string Device,
-        [property: JsonPropertyName("lastConnection")] DateTime? LastConnection
+        [property: JsonPropertyName("lastOnline")] DateTime? LastOnline
     );
 }

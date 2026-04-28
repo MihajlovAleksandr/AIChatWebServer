@@ -14,6 +14,7 @@ namespace AIChatWebServer.Services.Context.Implementations
         {
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim(JwtClaimNames.TokenType, JwtTokenType.Entry.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),

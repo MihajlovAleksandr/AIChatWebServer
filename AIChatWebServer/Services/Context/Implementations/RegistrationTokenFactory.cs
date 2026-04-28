@@ -13,7 +13,8 @@ namespace AIChatWebServer.Services.Context.Implementations
         public string Create(Guid userId, Guid connectionId, RegistrationState registrationState)
         {
             var claims = new[]
-            {                
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim(JwtClaimNames.TokenType, JwtTokenType.Registration.ToString()),
                 new Claim("connectionId", connectionId.ToString()),

@@ -1,8 +1,9 @@
 ﻿using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies;
-using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Implementations.Chats.RandomChatGame;
 using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
+using AIChatWebServer.Services.Interfaces.Chats.RandomChatGame;
 
 namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
 {
@@ -11,6 +12,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
         IUnitOfWorkFactory unitOfWorkFactory,
         IUserRepository userRepository,
         IChatRepository chatRepository,
+        IUserProfileGenerator generator,
+        IChatGameService gameService,
         IRandomChatService randomChatService,
         IConfiguration configuration) : IChatMatchStrategiesHandlerFactory
     {
@@ -26,6 +29,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
                         configuration) },
                     { ChatType.Random, new RandomChatMatchStrategy(
                         randomChatService,
+                        gameService,
+                        generator,
                         unitOfWorkFactory,
                         userRepository,
                         chatRepository,

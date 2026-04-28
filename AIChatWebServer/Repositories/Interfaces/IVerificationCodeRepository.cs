@@ -6,6 +6,7 @@ namespace AIChatWebServer.Repositories.Interfaces
     {
         Task UpsertAsync(
             Guid userId,
+            Guid connectionId,
             string type,
             string codeHash,
             DateTime expiresAt,
@@ -22,6 +23,7 @@ namespace AIChatWebServer.Repositories.Interfaces
 
         Task DeleteAsync(
             Guid id,
+            string type,
             CancellationToken cancellationToken = default);
     }
 }

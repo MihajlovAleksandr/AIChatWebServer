@@ -3,18 +3,19 @@
     public static class VerificationCodeQueries
     {
         public const string Upsert = """
-            INSERT INTO verification_codes (user_id, type, code_hash, expires_at)
-            VALUES (@UserId, @Type, @CodeHash, @ExpiresAt)
+            INSERT INTO verification_codes (user_id, connection_id, type, code_hash, expires_at)
+            VALUES (@UserId, @ConnectionId, @Type, @CodeHash, @ExpiresAt)
             ON CONFLICT (user_id, type)
             DO UPDATE SET
                 code_hash = EXCLUDED.code_hash,
                 expires_at = EXCLUDED.expires_at,
                 attempts = 0,
-                created_at = CURRENT_TIMESTAMP;
+                created_at = CURRENT_TIMESTAMP,
+                connection_id = EXCLUDED.connection_id;
             """;
 
         public const string Get = """
-            SELECT id, user_id, type, code_hash, attempts, expires_at, created_at
+            SELECT id, user_id, connection_id, type, code_hash, attempts, expires_at, created_at
             FROM verification_codes
             WHERE user_id = @UserId AND type = @Type
             LIMIT 1;
@@ -28,7 +29,8 @@
 
         public const string Delete = """
             DELETE FROM verification_codes
-            WHERE id = @Id;
+            WHERE id = @Id
+            AND type = @Type;
             """;
     }
 }

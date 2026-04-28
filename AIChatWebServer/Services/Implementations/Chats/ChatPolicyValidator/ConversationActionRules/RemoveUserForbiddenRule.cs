@@ -8,6 +8,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator.Con
     {
         public override void Validate(Chat chat, RemoveUserAction action)
         {
+            if (action.UserId.Equals(action.RemovedUserId)) return;
             throw new ChatMembersModificationForbiddenException(chat.Id);
         }
     }

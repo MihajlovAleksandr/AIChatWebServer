@@ -1,10 +1,11 @@
 ﻿using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.Matchmaking;
 
 namespace AIChatWebServer.Services.Interfaces.Chats.Matchmaking
 {
     public interface IDirectMatchmakingService
     {
-        Task MatchUserAsync(
+        Task<ChatMatchmakingResult?> MatchUserAsync(
             ChatType chatType,
             Guid userId,
             string userPredicate,

@@ -72,7 +72,7 @@
             WHERE id = @id;
         ";
 
-        public const string GetByUser = @"
+        public const string GetChatByUser = @"
             SELECT
                 id,
                 user_id,
@@ -86,6 +86,26 @@
             WHERE
                 user_id = @userId
                 AND status = 1
+                AND chat_type <> 'Group'
+            ORDER BY created_at
+            LIMIT 1;
+        ";
+
+        public const string GetGroupByUser = @"
+            SELECT
+                id,
+                user_id,
+                chat_type,
+                chat_name,
+                match_predicate,
+                status,
+                created_at,
+                expires_at
+            FROM matchmaking_queue
+            WHERE
+                user_id = @userId
+                AND status = 1
+                AND chat_type = 'Group'
             ORDER BY created_at
             LIMIT 1;
         ";

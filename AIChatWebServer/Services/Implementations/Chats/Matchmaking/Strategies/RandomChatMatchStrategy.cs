@@ -1,14 +1,18 @@
 ﻿using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.Matchmaking;
+using AIChatWebServer.Models.Chats.RandomChat;
 using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
-using AIChatWebServer.Services.Interfaces.Chats;
 using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
+using AIChatWebServer.Services.Interfaces.Chats.RandomChatGame;
 
 namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
 {
     public class RandomChatMatchStrategy(
         IRandomChatService randomChatService,
+        IChatGameService chatGameService,
+        IUserProfileGenerator userProfileGenerator,
         IUnitOfWorkFactory unitOfWorkFactory,
         IUserRepository userRepository,
         IChatRepository chatRepository, 
@@ -17,7 +21,9 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
         private readonly IUnitOfWorkFactory _unitOfWorkFactory = unitOfWorkFactory;
         private readonly IUserRepository _userRepository = userRepository;
         private readonly IChatRepository _chatRepository = chatRepository;
+        private readonly IChatGameService _chatGameService = chatGameService;
         private readonly IRandomChatService _randomChatService = randomChatService;
+        private readonly IUserProfileGenerator _userProfileGenerator = userProfileGenerator;
         private readonly int _expiredTime = int.Parse(configuration["Matchmaking:ExpiredHours"] 
             ?? throw new ArgumentException("Matchmaking ExpiredHours is not configured."));
         private readonly Guid aIId = Guid.Parse(configuration["SystemUsers:AIId"] 
@@ -27,7 +33,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
 
         public ChatType MatchType => ChatType.Random;
 
-        public async Task MatchUserAsync(
+        public async Task<ChatMatchmakingResult?> MatchUserAsync(
             Guid userId,
             string userPredicate,
             string chatName,
@@ -41,28 +47,32 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
 
             if (isChatAI)
             {
-                await CreateAIChat(user.Id, chatName, ct);
+                return await CreateAIChat(user, chatName, ct);
             }
             else
             {
-                await TryMatchUser(user, chatName, ct);
+                return await TryMatchUser(user, chatName, ct);
             }
         }
 
-        private async Task CreateAIChat(Guid userId, string chatName, CancellationToken ct)
+        private async Task<ChatMatchmakingResult> CreateAIChat(User user, string chatName, CancellationToken ct)
         {
             Guid chatId = await _chatRepository.CreateAsync(MatchType,
                 new Dictionary<Guid, string>
                 {
-                    { aIId, $"RChat With {userId}" },
-                    { userId, chatName}
+                    { aIId, $"RChat With {user.Id}" },
+                    { user.Id, chatName}
                 },ct);
-
-            await _randomChatService.Create(aIId, userId, chatId, ct);
+            _ = Task.Run(async() => await _userProfileGenerator.GenerateAync(chatId, user, ct));
+            Chat chat = await _chatRepository.GetById(chatId)
+                ?? throw new ArgumentException();
+            await _chatGameService.CreateGameAsync(chatId, chat.UsersWithData[user.Id].Id, chat.UsersWithData[aIId].Id, AiRole.RealAi, ct);
+            await _randomChatService.Create(aIId, user.Id, chatId, ct);
+            return new ChatMatchmakingResult(chatId);
         }
 
 
-        private async Task TryMatchUser(User user, string chatName, CancellationToken ct)
+        private async Task<ChatMatchmakingResult?> TryMatchUser(User user, string chatName, CancellationToken ct)
         {
             await using var uow =
                     await _unitOfWorkFactory.CreateAsync(ct);
@@ -98,13 +108,16 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
 
                 await uow.CommitAsync(ct);
 
-                await CreateHumanChat(candidate.Id, candidate.ChatName, user.Id, chatName, ct);
+                return await CreateHumanChat(candidate.UserId, candidate.ChatName, user.Id, chatName, ct);
             }
             else
+            {
                 await uow.CommitAsync(ct);
+                return null;
+            }
         }
 
-        private async Task CreateHumanChat(Guid firstId, string firstChatName, Guid secondId, string secondChatName, CancellationToken ct)
+        private async Task<ChatMatchmakingResult> CreateHumanChat(Guid firstId, string firstChatName, Guid secondId, string secondChatName, CancellationToken ct)
         {
             Guid chatId = await _chatRepository.CreateAsync(MatchType,
                 new Dictionary<Guid, string>
@@ -112,8 +125,13 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
                     { firstId, firstChatName},
                     { secondId, secondChatName}
                 }, ct);
+            Chat chat = await _chatRepository.GetById(chatId, ct)
+                ?? throw new ArgumentException();
 
             await _randomChatService.Create(firstId, secondId, chatId, ct);
+
+            await _chatGameService.CreateGameAsync(chatId, chat.UsersWithData[secondId].Id, chat.UsersWithData[firstId].Id, AiRole.FakeAi, ct);
+            return new ChatMatchmakingResult(chatId);
         }
     }
 }

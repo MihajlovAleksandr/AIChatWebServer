@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.Models.Messages;
+using AIChatWebServer.Repositories.Models;
 
 namespace AIChatWebServer.Repositories.Interfaces
 {
@@ -47,5 +48,11 @@ namespace AIChatWebServer.Repositories.Interfaces
         Task DeleteMessageAsync(
             Guid id,
             CancellationToken ct = default);
+
+        Task<SyncMessagesResult> GetChangesAsync(
+                IReadOnlyCollection<Guid> chatIds,
+                DateTime since,
+                CancellationToken ct);
+
     }
 }

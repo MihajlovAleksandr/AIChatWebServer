@@ -21,5 +21,8 @@
 
         public static readonly IErrorCode PremiumRequired =
             new UserErrors("PREMIUM_REQUIRED");
+
+        public static readonly IErrorCode UserNotRegistred =
+            new UserErrors("USER_NOT_REGISTRED");
     }
 }

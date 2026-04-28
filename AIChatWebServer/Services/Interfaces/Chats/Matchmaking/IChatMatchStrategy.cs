@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.Matchmaking;
 
 namespace AIChatWebServer.Services.Interfaces.Chats.Matchmaking
 {
@@ -6,7 +7,7 @@ namespace AIChatWebServer.Services.Interfaces.Chats.Matchmaking
     {
         ChatType MatchType { get; }
 
-        Task MatchUserAsync(
+        Task<ChatMatchmakingResult?> MatchUserAsync(
             Guid userId,
             string userPredicate,
             string chatName,

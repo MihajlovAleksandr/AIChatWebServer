@@ -70,5 +70,10 @@ namespace AIChatWebServer.Repositories.Interfaces
         Task<Region> GetRegionByCodeAsync(
             string regionCode,
             CancellationToken cancellationToken = default);
+
+        Task UpsertAuthIdentityAsync(
+            Guid userId,
+            AuthIdentity authIdentity,
+            CancellationToken ct = default);
     }
 }

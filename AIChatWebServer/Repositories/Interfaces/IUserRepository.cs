@@ -75,5 +75,21 @@ namespace AIChatWebServer.Repositories.Interfaces
             Guid userId,
             AuthIdentity authIdentity,
             CancellationToken ct = default);
+
+        Task<bool> DeleteAuthIdentityAsync(
+            Guid userId,
+            string providerCode,
+            CancellationToken ct = default);
+
+        Task UpsertUserLanguageAsync(
+            Guid userId,
+            LanguageContext context,
+            string languageCode,
+            CancellationToken ct = default);
+
+        Task<bool> DeleteUserLanguageAsync(
+            Guid userId,
+            LanguageContext context,
+            CancellationToken ct = default);
     }
 }

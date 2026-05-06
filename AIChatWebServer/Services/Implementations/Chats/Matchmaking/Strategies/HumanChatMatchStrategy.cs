@@ -10,12 +10,14 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
     public class HumanChatMatchStrategy(
         IUserMatchPredicateFactory userMatchPredicateFactory,
         IUnitOfWorkFactory unitOfWorkFactory,
+        IMatchmakingRepository matchmakingRepository,
         IUserRepository userRepository,
         IChatRepository chatRepository,
         IConfiguration configuration) : IChatMatchStrategy
     {
         private readonly IUserMatchPredicateFactory _userMatchPredicateFactory = userMatchPredicateFactory;
         private readonly IUnitOfWorkFactory _unitOfWorkFactory = unitOfWorkFactory;
+        private readonly IMatchmakingRepository _matchmakingRepository = matchmakingRepository;
         private readonly IUserRepository _userRepository = userRepository;
         private readonly IChatRepository _chatRepository = chatRepository;
         private readonly int _expiredTime = int.Parse(configuration["Matchmaking:ExpiredHours"]
@@ -38,9 +40,10 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
 
             await using var uow =
                 await _unitOfWorkFactory.CreateAsync(ct);
+            IMatchmakingRepository matchmakingRepository = uow.WithTransaction(_matchmakingRepository);
 
             Guid entryId =
-                await uow.Matchmaking.EnqueueAsync(
+                await matchmakingRepository.EnqueueAsync(
                     userId,
                     MatchType,
                     userPredicate,
@@ -49,11 +52,11 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
                     ct);
 
             var entry =
-                await uow.Matchmaking.LockEntryAsync(entryId, ct)
+                await matchmakingRepository.LockEntryAsync(entryId, ct)
                 ?? throw new ArgumentException();
 
             var candidates =
-                await uow.Matchmaking.AcquireCandidatesAsync(
+                await matchmakingRepository.AcquireCandidatesAsync(
                     entry.UserId,
                     entry.ChatType,
                     10,
@@ -76,7 +79,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
                 if (candidatePredicate.TryMatch(candidateUser, user) &&
                     predicate.TryMatch(user, candidateUser))
                 {
-                    await uow.Matchmaking.CompleteAsync(
+                    await matchmakingRepository.CompleteAsync(
                         [entry.Id,
                         candidate.Id],
                         ct);

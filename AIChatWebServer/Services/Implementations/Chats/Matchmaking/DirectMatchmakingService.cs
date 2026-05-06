@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Hubs.Interfaces;
-using AIChatWebServer.Models.Chats;
+﻿using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Exceptions.Implementations.Chat.Matchmaking;
 using AIChatWebServer.Repositories.Interfaces;
@@ -9,8 +8,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
 {
     public class DirectMatchmakingService(
         IChatMatchStrategiesHandlerFactory chatMatchStrategiesHandlerFactory,
-        IMatchmakingRepository matchmakingRepository,
-         IChatGroupNotifier groupNotifier) : IDirectMatchmakingService
+        IMatchmakingRepository matchmakingRepository) : IDirectMatchmakingService
     {
         private readonly IChatMatchStrategiesHandlerFactory _chatMatchStrategiesHandlerFactory = chatMatchStrategiesHandlerFactory;
         private readonly IMatchmakingRepository _matchmakingRepository = matchmakingRepository;

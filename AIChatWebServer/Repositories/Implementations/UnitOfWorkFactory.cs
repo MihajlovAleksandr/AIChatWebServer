@@ -2,13 +2,9 @@
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class UnitOfWorkFactory(
-        IMatchmakingRepository matchmaking,
-        IGroupChatSearchRepository groupChatSearch)
+    public sealed class UnitOfWorkFactory
                 : BaseRepository, IUnitOfWorkFactory
     {
-        private readonly IMatchmakingRepository _matchmaking = matchmaking;
-        private readonly IGroupChatSearchRepository _groupChatSearch = groupChatSearch;
 
         public async Task<IUnitOfWork> CreateAsync(
             CancellationToken ct = default)
@@ -21,9 +17,7 @@ namespace AIChatWebServer.Repositories.Implementations
 
             return new UnitOfWork(
                 conn,
-                tx,
-                _matchmaking,
-                _groupChatSearch);
+                tx);
         }
     }
 }

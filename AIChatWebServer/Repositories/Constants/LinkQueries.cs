@@ -98,7 +98,8 @@
             WHERE
                 created_by = @createdBy
                 AND revoked = false
-                AND (expires_at IS NULL OR expires_at > NOW());
+                AND (expires_at IS NULL OR expires_at > NOW())
+                AND max_uses <> current_uses;
         ";
     }
 }

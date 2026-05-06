@@ -301,6 +301,66 @@ namespace AIChatWebServer.Repositories.Implementations
 
             await cmd.ExecuteNonQueryAsync(ct);
         }
+
+        public async Task<bool> DeleteAuthIdentityAsync(
+            Guid userId,
+            string providerCode,
+            CancellationToken ct = default)
+        {
+            await using var conn =
+                await GetConnectionAsync(ct);
+
+            await using var cmd =
+                new NpgsqlCommand(UserQueries.DeleteAuthIdentity, conn);
+
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@providerCode", providerCode);
+
+            var rowsAffected =
+                await cmd.ExecuteNonQueryAsync(ct);
+
+            return rowsAffected > 0;
+        }
+
+        public async Task UpsertUserLanguageAsync(
+            Guid userId,
+            LanguageContext context,
+            string languageCode,
+            CancellationToken ct = default)
+        {
+            await using var conn =
+                await GetConnectionAsync(ct);
+
+            await using var cmd =
+                new NpgsqlCommand(UserQueries.UpsertUserLanguage, conn);
+
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@context", context.ToString());
+            cmd.Parameters.AddWithValue("@languageCode", languageCode);
+
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        public async Task<bool> DeleteUserLanguageAsync(
+            Guid userId,
+            LanguageContext context,
+            CancellationToken ct = default)
+        {
+            await using var conn =
+                await GetConnectionAsync(ct);
+
+            await using var cmd =
+                new NpgsqlCommand(UserQueries.DeleteUserLanguage, conn);
+
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@context", context.ToString());
+
+            var rowsAffected =
+                await cmd.ExecuteNonQueryAsync(ct);
+
+            return rowsAffected > 0;
+        }
+
         private async Task<User?> GetSingleAsync(
             string sql,
             CancellationToken ct,
@@ -382,12 +442,21 @@ namespace AIChatWebServer.Repositories.Implementations
 
                 if (!r.IsDBNull("premium_id"))
                 {
-                    user.Premium.Add(new UserPremium
+                    var premiumId = r.GetGuid("premium_id");
+
+                    if (!user.Premium.Any(p => p.Id == premiumId))
                     {
-                        Id = r.GetGuid("premium_id"),
-                        StartTime = r.GetDateTime("start_at"),
-                        EndTime = r.GetDateTime("end_at")
-                    });
+                        user.Premium.Add(new UserPremium
+                        {
+                            Id = premiumId,
+                            StartTime = r.GetDateTime("start_at"),
+                            EndTime = r.GetDateTime("end_at"),
+                            IsAutoRenew = r.GetBoolean("is_auto_renew"),
+                            SubscriptionId = r.IsDBNull("subscription_id")
+                                ? null
+                                : r.GetString("subscription_id")
+                        });
+                    }
                 }
 
                 if (!r.IsDBNull("auth_id"))

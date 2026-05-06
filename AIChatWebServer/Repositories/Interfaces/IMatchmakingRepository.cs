@@ -1,16 +1,10 @@
 ﻿using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.Matchmaking;
-using AIChatWebServer.Repositories.Constants;
-using Npgsql;
 
 namespace AIChatWebServer.Repositories.Interfaces
 {
-    public interface IMatchmakingRepository
+    public interface IMatchmakingRepository : ITransactionRepository<IMatchmakingRepository>
     {
-        IMatchmakingRepository WithTransaction(
-            NpgsqlConnection conn,
-            NpgsqlTransaction tx);
-
         Task<Guid> EnqueueAsync(
             Guid userId,
             ChatType chatType,

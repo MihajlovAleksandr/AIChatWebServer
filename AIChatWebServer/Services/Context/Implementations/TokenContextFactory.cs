@@ -34,6 +34,7 @@ namespace AIChatWebServer.Services.Context.Implementations
                 JwtTokenType.Work => new WorkTokenContext(accessor),
                 JwtTokenType.Registration => new RegistrationTokenContext(accessor),
                 JwtTokenType.Entry => new EntryTokenContext(accessor),
+                JwtTokenType.Server => new ServerTokenContext(accessor),
                 _ => throw new AuthTokenException(TokenErrors.InvalidType)
             };
         }

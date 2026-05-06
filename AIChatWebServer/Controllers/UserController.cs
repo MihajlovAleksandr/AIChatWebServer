@@ -1,6 +1,5 @@
 ﻿using AIChatWebServer.DTO.Request;
 using AIChatWebServer.DTO.Response;
-using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
@@ -14,7 +13,7 @@ namespace AIChatWebServer.Controllers
     [ApiController]
     [Route("api/user")]
     public sealed class UserController(IConnectionService connectionService, IUserService userService,
-        IConnectionValidator connectionValidator, 
+        IConnectionValidator connectionValidator,
         ICollectionResponseMapper<ConnectionInfo, ConnectionResponse> connectionResponseMapper,
         IMapper<UserDataRequest, UserData, UserDataResponse> userDataMapper,
         IRequestMapper<PreferenceRequest, Preference> preferenceMapper,

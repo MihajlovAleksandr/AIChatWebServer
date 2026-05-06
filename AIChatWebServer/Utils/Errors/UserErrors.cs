@@ -24,5 +24,29 @@
 
         public static readonly IErrorCode UserNotRegistred =
             new UserErrors("USER_NOT_REGISTRED");
+
+        public static readonly IErrorCode InvalidServerType =
+            new UserErrors("INVALID_SERVER_TYPE");
+
+        public static readonly IErrorCode AuthIdentityNotFound =
+            new UserErrors("AUTH_IDENTITY_NOT_FOUND");
+
+        public static readonly IErrorCode CannotDeleteLastAuthIdentity =
+            new UserErrors("CANNOT_DELETE_LAST_AUTH_IDENTITY");
+
+        public static readonly IErrorCode InvalidLanguageCode =
+            new UserErrors("INVALID_LANGUAGE_CODE");
+
+        public static readonly IErrorCode LanguageNotFound =
+            new UserErrors("LANGUAGE_NOT_FOUND");
+
+        public static readonly IErrorCode UserAlreadyDeleted =
+            new UserErrors("USER_ALREADY_DELETED");
+
+        public static readonly IErrorCode CannotDeleteSystemUser =
+            new UserErrors("CANNOT_DELETE_SYSTEM_USER");
+
+        public static readonly IErrorCode AuthIdentityAlreadyExists =
+            new UserErrors("AUTH_IDENTITY_ALREADY_EXISTS");
     }
 }

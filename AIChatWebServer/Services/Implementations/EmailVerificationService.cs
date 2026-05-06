@@ -13,8 +13,9 @@ namespace AIChatWebServer.Services.Implementations
 
         public async Task GenerateAsync(string email, Guid connectionId, Guid userId, string langCode, CancellationToken ct = default)
         {
-            Console.WriteLine(await _verificationCodeService.GenerateAsync(userId, connectionId, CodeType, ct));
-            //await _verificationCodeSender.SendAsync(email, await _verificationCodeService.GenerateAsync(userId, CodeType, ct), langCode, ct);
+            string code = await _verificationCodeService.GenerateAsync(userId, connectionId, CodeType, ct);
+            Console.WriteLine(code);
+            await _verificationCodeSender.SendAsync(email, code, langCode, ct);
         }
 
         public async Task VerifyAsync(Guid userId, string code, CancellationToken ct = default)

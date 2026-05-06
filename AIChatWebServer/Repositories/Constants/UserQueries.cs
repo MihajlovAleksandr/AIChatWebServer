@@ -117,6 +117,8 @@
                 up.id                 AS premium_id,
                 up.start_at,
                 up.end_at,
+                up.is_auto_renew,
+                up.subscription_id,
 
                 ai.id                 AS auth_id,
                 ai.identifier,
@@ -189,6 +191,27 @@
             ON CONFLICT (user_id, provider_code)
             DO UPDATE SET
                 secret = EXCLUDED.secret;
+        ";
+
+        public const string DeleteAuthIdentity = @"
+            DELETE FROM auth_identities
+            WHERE user_id = @userId
+            AND provider_code = @providerCode;
+        ";
+
+        public const string UpsertUserLanguage = @"
+            INSERT INTO user_languages (id, user_id, context, language_code, last_update)
+            VALUES (gen_random_uuid(), @userId, @context, @languageCode, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id, context)
+            DO UPDATE SET
+                language_code = @languageCode,
+                last_update = CURRENT_TIMESTAMP;
+        ";
+
+        public const string DeleteUserLanguage = @"
+            DELETE FROM user_languages
+            WHERE user_id = @userId
+              AND context = @context;
         ";
     }
 }

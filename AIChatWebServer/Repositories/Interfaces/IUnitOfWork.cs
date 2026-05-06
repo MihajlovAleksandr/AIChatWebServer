@@ -2,9 +2,7 @@
 {
     public interface IUnitOfWork : IAsyncDisposable
     {
-        IMatchmakingRepository Matchmaking { get; }
-
-        IGroupChatSearchRepository GroupChatSearch { get; }
+        T WithTransaction<T>(ITransactionRepository<T> repository) where T: ITransactionRepository<T>;
 
         Task CommitAsync(
             CancellationToken ct = default);

@@ -4,6 +4,7 @@
     {
         Work = 1,
         Registration = 2,
-        Entry = 3
+        Entry = 3,
+        Server = 4
     }
 }

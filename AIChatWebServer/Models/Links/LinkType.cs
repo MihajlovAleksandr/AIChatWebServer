@@ -4,6 +4,7 @@
     {
         ChatInvite,
         ShareChat,
-        Promo
+        Promo,
+        TelegramBind
     }
 }

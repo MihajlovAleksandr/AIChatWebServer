@@ -10,6 +10,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
     public class ChatMatchStrategiesHandlerFactory(
         IUserMatchPredicateFactory userMatchPredicateFactory,
         IUnitOfWorkFactory unitOfWorkFactory,
+        IMatchmakingRepository matchmakingRepository,
         IUserRepository userRepository,
         IChatRepository chatRepository,
         IUserProfileGenerator generator,
@@ -24,6 +25,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
                     { ChatType.Human, new HumanChatMatchStrategy(
                         userMatchPredicateFactory,
                         unitOfWorkFactory,
+                        matchmakingRepository,
                         userRepository,
                         chatRepository,
                         configuration) },
@@ -32,6 +34,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking
                         gameService,
                         generator,
                         unitOfWorkFactory,
+                        matchmakingRepository,
                         userRepository,
                         chatRepository,
                         configuration) }

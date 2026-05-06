@@ -5,18 +5,10 @@ namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class UnitOfWork(
         NpgsqlConnection conn,
-        NpgsqlTransaction tx,
-        IMatchmakingRepository matchmaking,
-        IGroupChatSearchRepository groupChatSearch) : IUnitOfWork
+        NpgsqlTransaction tx) : IUnitOfWork
     {
         private readonly NpgsqlConnection _conn = conn;
         private readonly NpgsqlTransaction _tx = tx;
-
-        public IMatchmakingRepository Matchmaking { get; } =
-                matchmaking.WithTransaction(conn, tx);
-
-        public IGroupChatSearchRepository GroupChatSearch { get; } =
-                groupChatSearch.WithTransaction(conn, tx);
 
         public Task CommitAsync(
             CancellationToken ct = default) =>
@@ -30,6 +22,11 @@ namespace AIChatWebServer.Repositories.Implementations
         {
             await _tx.DisposeAsync();
             await _conn.DisposeAsync();
+        }
+
+        public T WithTransaction<T>(ITransactionRepository<T> repository) where T : ITransactionRepository<T>
+        {
+            return repository.WithTransaction(_conn, _tx);
         }
     }
 }

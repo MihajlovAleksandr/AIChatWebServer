@@ -2,6 +2,7 @@
 using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Models.Exceptions.Implementations.Context;
 using AIChatWebServer.Models.User;
+using AIChatWebServer.Services.Context.Consts;
 using AIChatWebServer.Services.Context.Interfaces;
 using AIChatWebServer.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -14,12 +15,14 @@ namespace AIChatWebServer.Controllers.Auth
         IAuthLoginService loginService,
         IConnectionService connectionService,
         IWorkTokenFactory workTokenFactory,
+        IServerTokenFactory serverTokenFactory,
         IRegistrationTokenFactory registrationTokenFactory)
         : ControllerBase
     {
         private readonly IAuthLoginService _loginService = loginService;
         private readonly IConnectionService _connectionService = connectionService;
         private readonly IWorkTokenFactory _workTokenFactory = workTokenFactory;
+        private readonly IServerTokenFactory _serverTokenFactory = serverTokenFactory;
         private readonly IRegistrationTokenFactory _registrationTokenFactory = registrationTokenFactory;
 
         [HttpPost]
@@ -58,5 +61,23 @@ namespace AIChatWebServer.Controllers.Auth
                     connectionId));
 
         }
+
+        [HttpPost("server")]
+        public async Task<IActionResult> LoginServer(
+            [FromBody] LoginRequest request,
+            CancellationToken ct)
+        {
+            User user = await _loginService.LoginAsync(
+                request.Identifier.Trim(),
+                request.Secret,
+                request.IdentityProviderCode.Trim(),
+                ct);
+
+            return Ok(
+                _serverTokenFactory.Create(
+                    user.Id,
+                    Enum.Parse<Servers>(user.Email)));
+        }
+
     }
 }

@@ -5,9 +5,12 @@ using AIChatWebServer.Integrations.AI.Implementations;
 using AIChatWebServer.Integrations.AI.Interfaces;
 using AIChatWebServer.Integrations.Email.Implementations;
 using AIChatWebServer.Integrations.Email.Interfaces;
+using AIChatWebServer.Integrations.Telegram.Services.Implementations;
+using AIChatWebServer.Integrations.Telegram.Services.Interfaces;
 using AIChatWebServer.Middlewares;
 using AIChatWebServer.Models.AI;
 using AIChatWebServer.Models.Exceptions.Implementations.Auth;
+using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Implementations;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Context.Implementations;
@@ -23,6 +26,7 @@ using AIChatWebServer.Services.Implementations.Chats.RandomChatGame;
 using AIChatWebServer.Services.Implementations.Messages;
 using AIChatWebServer.Services.Implementations.Messages.Processors;
 using AIChatWebServer.Services.Implementations.Notifications;
+using AIChatWebServer.Services.Implementations.Payments;
 using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.AI;
 using AIChatWebServer.Services.Interfaces.Chats;
@@ -30,6 +34,7 @@ using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
 using AIChatWebServer.Services.Interfaces.Chats.RandomChatGame;
 using AIChatWebServer.Services.Interfaces.Messages;
 using AIChatWebServer.Services.Interfaces.Notifications;
+using AIChatWebServer.Services.Interfaces.Payments;
 using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Implementations;
 using AIChatWebServer.Utils.Implementations.Mappers;
@@ -52,6 +57,7 @@ var redisConnectionString =
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     ConnectionMultiplexer.Connect(redisConnectionString));
+
 builder.Services.Configure<DeepSeekSettings>(
     builder.Configuration.GetSection("AISettings:DeepSeek"));
 
@@ -60,6 +66,9 @@ builder.Services.Configure<OllamaSettings>(
 
 builder.Services.Configure<AISettings>(
     builder.Configuration.GetSection("AISettings"));
+
+builder.Services.Configure<SystemUsersOptions>(
+    builder.Configuration.GetSection("SystemUsers"));
 
 builder.Services.AddSingleton<BackgroundJobService>();
 builder.Services.AddSingleton<IBackgroundJobService>(sp => sp.GetRequiredService<BackgroundJobService>());
@@ -74,18 +83,14 @@ builder.Services.AddScoped<IQueryTagParser, QueryTagParser>();
 builder.Services.AddScoped<IQueryClassifier, QueryClassifier>();
 builder.Services.AddScoped<IUserProfileStore, RedisUserProfileStore>();
 builder.Services.AddScoped<IUserProfileGenerator, UserProfileGenerator>();
-
 builder.Services.AddScoped<IAIMessageCompressor, AIMessageCompressor>();
-
 builder.Services.AddScoped<IAIMessageDispatcherFactory, AIMessageDispatcherFactory>();
-
 builder.Services.AddScoped<IAIService, AIService>();
-
 builder.Services.AddScoped<IDialogAnalysisParser, DialogAnalysisParser>();
-
 
 builder.Services.AddSingleton<IHasher, Hasher>();
 builder.Services.AddSingleton<ITokenReplayGuard, RedisTokenReplayGuard>();
+
 builder.Services.AddSingleton<FirebaseApp>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
@@ -97,13 +102,12 @@ builder.Services.AddSingleton<FirebaseApp>(sp =>
         .FromFile<ServiceAccountCredential>(path)
         .ToGoogleCredential();
 
-    var app = FirebaseApp.Create(new AppOptions()
+    return FirebaseApp.Create(new AppOptions()
     {
         Credential = credential
     });
-
-    return app;
 });
+
 builder.Services.AddScoped<IMessageNotificationService, FirebaseMessageNotificationService>();
 builder.Services.AddScoped<INotificationSender, NotificationSender>();
 
@@ -120,10 +124,12 @@ builder.Services.AddScoped<IHubGroupDispatcher, HubGroupDispatcher>();
 builder.Services.AddScoped<IStringChanger, StringChanger>();
 builder.Services.AddScoped<IHtmlContentBuilder, HtmlContentBuilder>();
 
+builder.Services.AddScoped<IUserDeletionRepository, UserDeletionRepository>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IEmailTextGetter, EmailTextGetter>();
 builder.Services.AddScoped<IVerificationCodeSender, VerificationCodeSender>();
 builder.Services.AddScoped<NotificationSettingsMapper>();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
@@ -141,10 +147,17 @@ builder.Services.AddScoped<IAISettingsRepository, AISettingsRepository>();
 builder.Services.AddScoped<IChatGameRepository, ChatGameRepository>();
 builder.Services.AddScoped<IUserProfileStore, RedisUserProfileStore>();
 
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentItemRepository, PaymentItemRepository>();
+builder.Services.AddScoped<IUserPremiumRepository, UserPremiumRepository>();
+
 builder.Services.AddScoped<IAuthLoginService, AuthLoginService>();
 builder.Services.AddScoped<IAuthRegistrationService, AuthRegistrationService>();
 builder.Services.AddScoped<IAuthOAuthService, AuthOAuthService>();
 
+builder.Services.AddScoped<IUserPremiumService, UserPremiumService>();
+builder.Services.AddScoped<IUserDeletionService, UserDeletionService>();
 builder.Services.AddScoped<IAISettingsService, AISettingsService>();
 builder.Services.AddScoped<RandomMessageProcessor>();
 builder.Services.AddScoped<AIChatMessageProcessor>();
@@ -166,20 +179,19 @@ builder.Services.AddScoped<IEntryCodeService, EntryCodeService>();
 builder.Services.AddScoped<IVerificationCodeService, VerificationCodeService>();
 builder.Services.AddScoped<IConnectionValidator, ConnectionValidator>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IServerValidator, ServerValidator>();
+
 builder.Services.AddScoped<NotificationService>();
-builder.Services.AddScoped<INotificationService>(sp =>{
-    return sp.GetRequiredService<NotificationService>();
-});
-builder.Services.AddScoped<INotificationTokenGetter>(sp =>{
-    return sp.GetRequiredService<NotificationService>();
-});
+builder.Services.AddScoped<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
+builder.Services.AddScoped<INotificationTokenGetter>(sp => sp.GetRequiredService<NotificationService>());
 builder.Services.AddScoped<INotificationSender, NotificationSender>();
 builder.Services.AddScoped<INotificationFacade, NotificationFacade>();
+
 builder.Services.AddScoped<IFileChecksumService, FileChecksumService>();
 builder.Services.AddScoped<IFileStorage, FileStorage>();
 builder.Services.AddScoped<IFileService, FileService>();
-
 builder.Services.AddScoped<IUploadSessionService, UploadSessionService>();
+
 builder.Services.AddSingleton<IChatPolicyFactory, ChatPolicyFactory>();
 builder.Services.AddScoped<IChatSettingsFactory, ChatSettingsFactory>();
 builder.Services.AddScoped<IUserSettingsFactory, UserSettingsFactory>();
@@ -188,6 +200,7 @@ builder.Services.AddScoped<IConversationActionValidator, ConversationActionValid
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<ILinkService, LinkService>();
+builder.Services.AddScoped<ITelegramLinkService, TelegramLinkService>();
 builder.Services.AddScoped<IChatLinkService, ChatLinkService>();
 builder.Services.AddSingleton<IRandomChatService, RandomChatService>();
 builder.Services.AddScoped<IChatAddUserStrategy, AddUserStrategy>();
@@ -201,14 +214,19 @@ builder.Services.AddScoped<ISyncService, SyncService>();
 builder.Services.AddScoped<IDisconnectService, DisconnectService>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
+builder.Services.AddScoped<IPurchaseService, PurchaseService>();
+builder.Services.AddScoped<IPurchaseHandler, PremiumSubscriptionPurchaseHandler>();
+builder.Services.AddScoped<IPurchaseHandler, PremiumOneTimePurchaseHandler>();
+builder.Services.AddScoped<IPaymentOrchestrator, StripePaymentOrchestrator>();
+builder.Services.AddScoped<IPaymentDispatcher, PaymentDispatcher>();
 
 builder.Services.AddScoped<IWorkTokenFactory, WorkTokenFactory>();
+builder.Services.AddScoped<IServerTokenFactory, ServerTokenFactory>();
 builder.Services.AddScoped<IRegistrationTokenFactory, RegistrationTokenFactory>();
 builder.Services.AddScoped<IEntryTokenFactory, EntryTokenFactory>();
 
 builder.Services.AddScoped<IClientContext, ClientContext>();
 builder.Services.AddScoped<ITokenContextFactory, TokenContextFactory>();
-
 
 builder.Services.AddScoped<IWorkTokenContext>(sp =>
 {
@@ -249,6 +267,18 @@ builder.Services.AddScoped<IEntryTokenContext>(sp =>
     return entryContext;
 });
 
+builder.Services.AddScoped<IServerTokenContext>(sp =>
+{
+    var factory = sp.GetRequiredService<ITokenContextFactory>();
+    var accessor = sp.GetRequiredService<IUserContextAccessor>();
+
+    var context = factory.Create(accessor);
+
+    if (context is not IServerTokenContext entryContext)
+        throw new AuthTokenException(CodeErrors.ContextInvalid);
+
+    return entryContext;
+});
 
 builder.Services.AddControllers();
 
@@ -274,23 +304,22 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
 
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
 
-
-        IssuerSigningKey = new SymmetricSecurityKey(
+            IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(
                     builder.Configuration["Jwt:Key"]
                     ?? throw new InvalidOperationException("Jwt:Key is not configured.")
                 ))
-    };
+        };
 
         options.Events = new JwtBearerEvents
         {

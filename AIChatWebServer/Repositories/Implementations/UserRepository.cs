@@ -6,7 +6,7 @@ using System.Data;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class UserRepository : BaseRepository, IUserRepository
+    public sealed class UserRepository(IConfiguration configuration) : BaseRepository(configuration), IUserRepository
     {
         public async Task<Guid> CreateUserAsync(
             string email,

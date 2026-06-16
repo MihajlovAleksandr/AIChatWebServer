@@ -1,8 +1,9 @@
-﻿using AIChatWebServer.Hubs.Interfaces;
+﻿using AIChatWebServer.DTO.Request;
+using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Exceptions.Implementations;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Interfaces.Connections;
 using Microsoft.AspNetCore.SignalR;
 
 namespace AIChatWebServer.Hubs.Implementations
@@ -14,7 +15,9 @@ namespace AIChatWebServer.Hubs.Implementations
         IConnectionValidator connectionValidator,
         IConnectionStore connectionStore,
         IGroupService groupService,
-        IConnectionNotifier connectionNotifier) : BaseHub
+        IChatGroupNotifier chatNotifier,
+        IConnectionNotifier connectionNotifier,
+        ILogger<ChatHub> logger) : BaseHub
     {
         private readonly IWorkTokenContext _token = token;
         private readonly IClientContext _client = client;
@@ -23,6 +26,8 @@ namespace AIChatWebServer.Hubs.Implementations
         private readonly IConnectionStore _store = connectionStore;
         private readonly IGroupService _groups = groupService;
         private readonly IConnectionNotifier _connectionNotifier = connectionNotifier;
+        private readonly IChatGroupNotifier _chatNotifier = chatNotifier;
+        private readonly ILogger<ChatHub> _logger = logger;
 
         public override async Task OnConnectedAsync()
         {
@@ -64,6 +69,22 @@ namespace AIChatWebServer.Hubs.Implementations
             {
                 await _connectionNotifier.ConnectionChanged(_token.ConnectionId, isNewConnection, true);
             }
+        }
+
+        public async Task Ping(DateTime param)
+        {
+            var pingTime = DateTime.UtcNow;
+            var userId = _token.UserId;
+            var connectionId = _token.ConnectionId;
+
+            await Clients.Caller.SendAsync("Pong", pingTime);
+        }
+
+        public async Task Typing(TypingRequest request)
+        {
+            var userId = _token.UserId;
+            _logger.LogError(request.IsTyping ? "User {userId} is typing in chat {chatId}" : "User {userId} stoped typing in chat {chatId}", userId, request.ChatId);
+            await _chatNotifier.Typing(request.ChatId, userId, request.IsTyping);
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)

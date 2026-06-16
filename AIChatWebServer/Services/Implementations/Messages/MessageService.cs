@@ -6,8 +6,8 @@ using AIChatWebServer.Models.Files;
 using AIChatWebServer.Models.Messages;
 using AIChatWebServer.Models.Sync;
 using AIChatWebServer.Repositories.Interfaces;
-using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Interfaces.Files;
 using AIChatWebServer.Services.Interfaces.Messages;
 using FileNotFoundException = AIChatWebServer.Models.Exceptions.Implementations.File.FileNotFoundException;
 

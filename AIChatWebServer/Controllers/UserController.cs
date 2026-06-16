@@ -2,7 +2,8 @@
 using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Connections;
+using AIChatWebServer.Services.Interfaces.Users;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -74,17 +75,6 @@ namespace AIChatWebServer.Controllers
             return Ok();
         }
 
-        [Authorize]
-        [HttpGet("premium")]
-        public async Task<IActionResult> GetPremium(
-            [FromServices] IWorkTokenContext tokenContext,
-            [FromServices] IClientContext clientContext, 
-            CancellationToken ct)
-        {
-            await _connectionValidator.ValidateConnectionAsync(tokenContext.ConnectionId, tokenContext.UserId, clientContext.Device, ct);
-
-            return Ok(await _userService.IsPremium(tokenContext.UserId, ct));
-        }
 
         [HttpGet("{userId}/userdata")]
         public async Task<IActionResult> GetUserData([FromRoute] Guid userId, CancellationToken ct)

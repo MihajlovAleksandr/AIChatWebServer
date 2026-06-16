@@ -1,4 +1,5 @@
-﻿using AIChatWebServer.Models.Payment;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.Payment;
 
 namespace AIChatWebServer.Services.Interfaces.Payments
 {
@@ -20,19 +21,50 @@ namespace AIChatWebServer.Services.Interfaces.Payments
                     CancellationToken ct);
 
         Task ProcessSubscriptionRenewalAsync(
-            string subscriptionId,
-            string invoiceId,
-            string priceId,
-            decimal amount,
-            string currency,
-            CancellationToken ct);
+                    string subscriptionId,
+                    string invoiceId,
+                    string stripeInvoiceUrl,
+                    string priceId,
+                    decimal amount,
+                    string currency,
+                    PaymentData paymentData,
+                    CancellationToken ct);
 
-        Task ConfirmPaymentAsync(Guid paymentId, string externalTransactionId, PaymentData data, CancellationToken ct);
+        Task ConfirmPaymentAsync(
+            Guid paymentId,
+            string invoiceId,
+            string? stripeChargeId,
+            string? stripeInvoiceUrl,
+            PaymentData data,
+            CancellationToken ct);
 
         Task<List<Payment>> GetUserPaymentsAsync(Guid userId, CancellationToken ct);
 
         Task<(Payment payment, List<PaymentItem> items)> GetPaymentDetailsAsync(
              Guid paymentId,
              CancellationToken ct);
+
+        Task UpdateReceiptUrlAsync(
+            string stripeChargeId,
+            string stripeInvoiceUrl,
+            CancellationToken ct);
+
+        Task<(Payment payment, List<PaymentItem> items)> GetPremiumPaymentDetailsAsync(
+            Guid premiumId,
+            CancellationToken ct);
+
+        Task FailPaymentAsync(
+            Guid paymentId,
+            string? invoiceId,
+            string? stripeChargeId,
+            string? stripeInvoiceUrl,
+            CancellationToken ct);
+
+        Task FailSubscriptionRenewalAsync(
+            string subscriptionId,
+            string invoiceId,
+            string? stripeChargeId,
+            string? stripeInvoiceUrl,
+            CancellationToken ct);
     }
 }

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": [ "delegate_permission/common.handle_all_urls" ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.aichat",
+      "sha256_cert_fingerprints": [
+        "CC:2D:B3:48:B7:FE:3C:62:40:36:BE:DD:6E:79:AE:19:C5:2C:D8:2A:99:4A:0B:89:72:A6:32:2D:71:C5:77:3E"
+      ]
+    }
+  }
+]

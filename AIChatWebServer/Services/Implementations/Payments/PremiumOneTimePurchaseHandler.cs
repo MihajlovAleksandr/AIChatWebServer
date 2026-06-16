@@ -1,13 +1,39 @@
-﻿using AIChatWebServer.Models.Payment;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.Payment;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces.Payments;
 using System.Text.Json;
+using Npgsql;
 
 namespace AIChatWebServer.Services.Implementations.Payments
 {
-    public sealed class PremiumOneTimePurchaseHandler(IUserPremiumRepository userPremiumRepository) : IPurchaseHandler
+    public sealed class PremiumOneTimePurchaseHandler : IPurchaseHandler
     {
-        private readonly IUserPremiumRepository _userPremiumRepository = userPremiumRepository;
+        private readonly IUserPremiumRepository _userPremiumRepository;
+        private readonly NpgsqlConnection? _conn;
+        private readonly NpgsqlTransaction? _tx;
+
+        public PremiumOneTimePurchaseHandler(IUserPremiumRepository userPremiumRepository)
+        {
+            _userPremiumRepository = userPremiumRepository;
+        }
+
+        private PremiumOneTimePurchaseHandler(
+            IUserPremiumRepository userPremiumRepository,
+            NpgsqlConnection conn,
+            NpgsqlTransaction tx) : this(userPremiumRepository)
+        {
+            _conn = conn;
+            _tx = tx;
+        }
+
+        public IPurchaseHandler WithTransaction(NpgsqlConnection conn, NpgsqlTransaction tx)
+        {
+            return new PremiumOneTimePurchaseHandler(
+                _userPremiumRepository.WithTransaction(conn, tx),
+                conn,
+                tx);
+        }
 
         public bool CanHandle(Product product, PaymentData data)
             => product.Type == PaymentType.Subscription && data is OneTimePaymentData;
@@ -16,14 +42,14 @@ namespace AIChatWebServer.Services.Implementations.Payments
             Guid userId,
             PaymentItem item,
             PaymentData data,
-            IUnitOfWork uow,
             CancellationToken ct)
         {
+            if (_tx == null)
+                throw new InvalidOperationException("ApplyAsync must be executed within a transaction");
+
             var subData = (OneTimePaymentData)data;
 
-            var premiumRepo = uow.WithTransaction(_userPremiumRepository);
-
-            var last = await premiumRepo.GetLastAsync(userId, ct);
+            var last = await _userPremiumRepository.GetLastAsync(userId, ct);
             var now = DateTime.UtcNow;
 
             var start = last == null || last.EndTime < now
@@ -33,9 +59,9 @@ namespace AIChatWebServer.Services.Implementations.Payments
             var attrs = JsonSerializer.Deserialize<SubsAtributes>(item.Product.AttributesJson)
                 ?? throw new ArgumentException("Invalid json attributes");
 
-            var end = start.AddDays(attrs.Days);
+            DateTime end = attrs.Apply(start);
 
-            await premiumRepo.CreateAsync(
+            await _userPremiumRepository.CreateAsync(
                 userId,
                 item.Id,
                 start,

@@ -3,7 +3,7 @@ using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Models.Files;
 using AIChatWebServer.Models.Messages;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Connections;
 using AIChatWebServer.Services.Interfaces.Messages;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authorization;
@@ -156,7 +156,7 @@ namespace AIChatWebServer.Controllers
         }
 
         [Authorize]
-        [HttpPatch("status")]
+        [HttpPut("status")]
         public async Task<IActionResult> EditStatus(
             [FromServices] IWorkTokenContext tokenContext,
             [FromServices] IClientContext clientContext,

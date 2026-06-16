@@ -5,7 +5,7 @@ using Npgsql;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class UserDeletionRepository : BaseRepository, IUserDeletionRepository
+    public sealed class UserDeletionRepository(IConfiguration configuration) : BaseRepository(configuration), IUserDeletionRepository
     {
         public async Task<bool> DeleteUser(
             Guid userId,

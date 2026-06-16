@@ -7,19 +7,34 @@ namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class ProductRepository : BaseRepository, IProductRepository
     {
+        private readonly ILogger<ProductRepository> _logger;
+        private readonly IConfiguration _configuration;
         private readonly NpgsqlConnection? _conn;
         private readonly NpgsqlTransaction? _tx;
+        private readonly bool _isExternalConnection;
 
-        public ProductRepository() { }
-
-        private ProductRepository(NpgsqlConnection conn, NpgsqlTransaction tx)
+        public ProductRepository(IConfiguration configuration,
+            ILogger<ProductRepository> logger) : base(configuration)
         {
+            _configuration = configuration;
+            _logger = logger;
+            _isExternalConnection = false;
+        }
+
+        private ProductRepository(IConfiguration configuration,
+            ILogger<ProductRepository> logger,
+            NpgsqlConnection conn,
+            NpgsqlTransaction tx) : base(configuration)
+        {
+            _configuration = configuration;
+            _logger = logger;
             _conn = conn;
             _tx = tx;
+            _isExternalConnection = true;
         }
 
         public IProductRepository WithTransaction(NpgsqlConnection conn, NpgsqlTransaction tx)
-            => new ProductRepository(conn, tx);
+            => new ProductRepository(_configuration, _logger, conn, tx);
 
         public async Task<Product?> GetByIdAsync(
             Guid id,
@@ -63,23 +78,23 @@ namespace AIChatWebServer.Repositories.Implementations
             return list.FirstOrDefault();
         }
 
-        public Task<List<Product>> GetActiveAsync(
+        public async Task<List<Product>> GetActiveAsync(
             string region,
             CancellationToken ct = default)
         {
-            return ReadAsync(
+            return await ReadAsync(
                 ProductQueries.GetActive,
                 ct,
                 ("@region", region));
         }
 
-        public Task<List<Product>> GetByTypeAsync(
+        public async Task<List<Product>> GetByTypeAsync(
             string type,
             string region,
             bool onlyActive = true,
             CancellationToken ct = default)
         {
-            return ReadAsync(
+            return await ReadAsync(
                 ProductQueries.GetByType,
                 ct,
                 ("@type", type),
@@ -92,43 +107,64 @@ namespace AIChatWebServer.Repositories.Implementations
             CancellationToken ct,
             params (string, object)[] parameters)
         {
-            var list = new List<Product>();
+            NpgsqlConnection? connection = null;
+            bool ownsConnection = false;
 
-            var conn = _conn ?? await GetConnectionAsync(ct);
+            try
+            {
+                if (_isExternalConnection)
+                {
+                    connection = _conn;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    ownsConnection = true;
+                }
 
-            await using var cmd = new NpgsqlCommand(sql, conn, _tx);
+                await using var cmd = new NpgsqlCommand(sql, connection, _tx);
 
-            foreach (var (n, v) in parameters)
-                cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
+                foreach (var (name, value) in parameters)
+                    cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
 
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
 
-            while (await reader.ReadAsync(ct))
-                list.Add(Map(reader));
+                var list = new List<Product>();
 
-            return list;
+                while (await reader.ReadAsync(ct))
+                    list.Add(Map(reader));
+
+                return list;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
         }
 
-        private static Product Map(NpgsqlDataReader r)
+        private static Product Map(NpgsqlDataReader reader)
         {
-            var stripePriceIdOrdinal = r.GetOrdinal("stripe_price_id");
+            var stripePriceIdOrdinal = reader.GetOrdinal("stripe_price_id");
 
             return new Product
             {
-                Id = r.GetGuid(r.GetOrdinal("id")),
-                Code = r.GetString(r.GetOrdinal("code")),
-                Name = r.GetString(r.GetOrdinal("name")),
-                Description = r.GetString(r.GetOrdinal("description")),
-                Type = Enum.Parse<PaymentType>(r.GetString(r.GetOrdinal("type"))),
-                Price = r.GetDecimal(r.GetOrdinal("price")),
-                Currency = r.GetString(r.GetOrdinal("currency")),
-                StripePriceId = r.IsDBNull(stripePriceIdOrdinal)
+                Id = reader.GetGuid(reader.GetOrdinal("id")),
+                Code = reader.GetString(reader.GetOrdinal("code")),
+                Name = reader.GetString(reader.GetOrdinal("name")),
+                Description = reader.GetString(reader.GetOrdinal("description")),
+                Type = Enum.Parse<PaymentType>(reader.GetString(reader.GetOrdinal("type"))),
+                Price = reader.GetDecimal(reader.GetOrdinal("price")),
+                Currency = reader.GetString(reader.GetOrdinal("currency")),
+                StripePriceId = reader.IsDBNull(stripePriceIdOrdinal)
                     ? throw new InvalidOperationException("StripePriceId is null")
-                    : r.GetString(stripePriceIdOrdinal),
+                    : reader.GetString(stripePriceIdOrdinal),
 
-                AttributesJson = r.GetString(r.GetOrdinal("attributes")),
-                IsActive = r.GetBoolean(r.GetOrdinal("is_active")),
-                CreatedAt = r.GetDateTime(r.GetOrdinal("created_at"))
+                AttributesJson = reader.GetString(reader.GetOrdinal("attributes")),
+                IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
+                CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at"))
             };
         }
     }

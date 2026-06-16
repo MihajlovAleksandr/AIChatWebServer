@@ -1,112 +1,153 @@
 ﻿using AIChatWebServer.Models.Exceptions.Implementations.Payment;
 using AIChatWebServer.Models.Payment;
 using AIChatWebServer.Models.User;
-using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.Payments;
+using AIChatWebServer.Services.Interfaces.Users;
 
-namespace AIChatWebServer.Services.Implementations.Payments
+namespace AIChatWebServer.Services.Implementations.Payments;
+
+public sealed class PaymentDispatcher(
+    IPurchaseService purchaseService,
+    IUserPremiumService userPremiumService,
+    IUserService userService,
+    IPaymentOrchestrator stripeOrchestrator,
+    IPaymentVerifierFactory paymentVerifierFactory)
+    : IPaymentDispatcher
 {
-    public class PaymentDispatcher(
-        IPurchaseService purchaseService,
-        IUserPremiumService userPremiumService,
-        IPaymentOrchestrator stripeOrchestrator)
-        : IPaymentDispatcher
+    private readonly IPurchaseService _purchaseService = purchaseService;
+    private readonly IUserPremiumService _userPremiumService = userPremiumService;
+    private readonly IUserService _userService = userService;
+    private readonly IPaymentOrchestrator _stripe = stripeOrchestrator;
+    private readonly IPaymentVerifierFactory _paymentVerifierFactory = paymentVerifierFactory;
+
+    public async Task<PaymentCredentials> CreatePayment(
+        List<(Guid productId, int quantity)> paymentItems,
+        PaymentType paymentType,
+        Guid userId,
+        CancellationToken ct)
     {
-        private readonly IPurchaseService _purchaseService = purchaseService;
-        private readonly IUserPremiumService _userPremiumService = userPremiumService;
-        private readonly IPaymentOrchestrator _stripe = stripeOrchestrator;
+        var productQuantityList = new List<(Product product, int quantity)>();
 
-        public async Task<PaymentCredentials> CreatePayment(
-            List<(Guid productId, int quantity)> paymentItems,
-            PaymentType paymentType,
-            Guid userId,
-            CancellationToken ct)
+        foreach(var (productId, quantity) in paymentItems)
         {
-            if (paymentType == PaymentType.Subscription)
-            {
-                if (paymentItems.Count != 1)
-                    throw new InvalidSubscriptionPaymentItemsException(paymentItems.Count);
+            Product product = await _purchaseService.GetProductAsync(productId, userId, ct);
+            productQuantityList.Add((product, quantity));
+        }
 
-                UserPremium? userPremium = await _userPremiumService.GetAutoRenewAsync(userId, ct);
-                if (userPremium != null)
-                {
-                    throw new UserAlreadyHasAutoRenewSubscriptionException(userId);
-                }
-            }
+        IPaymentVerifier verifier = _paymentVerifierFactory.Create(paymentType);
 
-            var (paymentId, amount, currency, items) = await _purchaseService.CreatePaymentAsync(
+        await verifier.Verify(productQuantityList, paymentType, userId, ct);
+
+        var (paymentId, amount, currency, items) =
+            await _purchaseService.CreatePaymentAsync(
                 userId,
                 paymentItems,
                 ct);
 
-            var firstItem = items.First();
+        var firstItem = items.First();
 
-            if (firstItem.Product.Type == PaymentType.Subscription)
-            {
-                var url = await _stripe.CreateSubscriptionAsync(
+        if (firstItem.Product.Type == PaymentType.Subscription)
+        {
+            var user = await _userService.GetByIdAsync(userId, ct);
+
+            var subscriptionCredentials =
+                await _stripe.CreateSubscriptionAsync(
                     userId,
                     paymentId,
+                    user.Email,
                     firstItem.Product.StripePriceId,
                     ct);
 
-                return new PaymentCredentials(PaymentType.Subscription, new { url });
-            }
-
-            var clientSecret = await _stripe.CreateOneTimePaymentAsync(
-                paymentId,
-                amount,
-                currency,
-                ct);
-
-            return new PaymentCredentials(PaymentType.Payment,
-                 new
-                 {
-                     clientSecret,
-                     paymentId
-                 }
-            );
+            return new PaymentCredentials(
+                PaymentType.Subscription,
+                new
+                {
+                    customerId = subscriptionCredentials.CustomerId,
+                    ephemeralKey = subscriptionCredentials.EphemeralKey,
+                    subscriptionId = subscriptionCredentials.SubscriptionId,
+                    clientSecret = subscriptionCredentials.ClientSecret,
+                    publishableKey = subscriptionCredentials.PublishableKey,
+                    paymentId
+                });
         }
 
-        public async Task CancelSubscription(
-            Guid userId,
-            CancellationToken ct)
-        {
-            UserPremium? premium = await _userPremiumService.GetAutoRenewAsync(userId, ct)
-                ?? throw new UserAutoRenewSubscriptionNotFoundException(userId);
+        var clientSecret = await _stripe.CreateOneTimePaymentAsync(
+            paymentId,
+            amount,
+            currency,
+            ct);
 
-            if (premium.SubscriptionId == null)
-                throw new ArgumentException();
+        return new PaymentCredentials(
+            PaymentType.Payment,
+            new
+            {
+                clientSecret,
+                paymentId
+            });
+    }
 
-            await _stripe.CancelSubscriptionAsync(premium.SubscriptionId, ct);
-        }
+    public async Task CancelSubscription(
+        Guid userId,
+        CancellationToken ct)
+    {
+        UserPremium? premium =
+            await _userPremiumService.GetAutoRenewAsync(userId, ct)
+            ?? throw new UserAutoRenewSubscriptionNotFoundException(userId);
 
-        public Task<List<Payment>> GetMyPayments(
-            Guid userId,
-            CancellationToken ct)
-        {
-            return _purchaseService.GetUserPaymentsAsync(
-                userId,
-                ct);
-        }
+        if (premium.SubscriptionId == null)
+            throw new ArgumentException(nameof(premium.SubscriptionId));
 
-        public Task<(Payment, List<PaymentItem>)> GetPayment(
-            Guid id,
-            CancellationToken ct)
-        {
-            return _purchaseService
-                .GetPaymentDetailsAsync(id, ct);
-        }
+        await _stripe.CancelSubscriptionAsync(
+            premium.SubscriptionId,
+            ct);
+    }
 
-        public Task<List<Product>> GetProducts(
-            string? type,
-            Guid userId,
-            CancellationToken ct)
-        {
+    public Task<List<Payment>> GetMyPayments(
+        Guid userId,
+        CancellationToken ct)
+    {
+        return _purchaseService.GetUserPaymentsAsync(
+            userId,
+            ct);
+    }
 
-            return _purchaseService.GetAvailableProductsAsync(
-                userId,
-                type,
-                ct);
-        }
+    public Task<(Payment, List<PaymentItem>)> GetPayment(
+        Guid id,
+        CancellationToken ct)
+    {
+        return _purchaseService.GetPaymentDetailsAsync(
+            id,
+            ct);
+    }
+
+    public Task<List<Product>> GetProducts(
+        string? type,
+        Guid userId,
+        CancellationToken ct)
+    {
+        return _purchaseService.GetAvailableProductsAsync(
+            userId,
+            type,
+            ct);
+    }
+
+    public async Task<Product> GetProduct(
+        Guid productId,
+        Guid userId,
+        CancellationToken ct = default)
+    {
+        return await _purchaseService.GetProductAsync(
+            productId,
+            userId,
+            ct);
+    }
+
+    public Task<(Payment, List<PaymentItem>)> GetPremiumPayment(
+        Guid premiumId,
+        CancellationToken ct)
+    {
+        return _purchaseService.GetPremiumPaymentDetailsAsync(
+            premiumId,
+            ct);
     }
 }

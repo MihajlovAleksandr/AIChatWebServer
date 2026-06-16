@@ -55,14 +55,15 @@ namespace AIChatWebServer.Integrations.AI.Implementations
 
         public async Task<AIMessageResponse?> SendMessageAsync(
             IEnumerable<AIMessageRequest> aiMessages,
-            string model)
+            string model,
+            bool isSystemPrompt = false)
         {
             var request = new
             {
                 model,
                 messages = aiMessages,
                 stream = false,
-                max_tokens = _settings.MaxTokenCount
+                max_tokens = isSystemPrompt ? _settings.MaxSystemTokenCount : _settings.MaxTokenCount
             };
 
             var json = JsonSerializer.Serialize(request);

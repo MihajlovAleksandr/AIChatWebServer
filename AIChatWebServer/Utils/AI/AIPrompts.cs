@@ -258,9 +258,18 @@
         """);
 
         public static readonly AIPrompts SystemCompressDialog = new("""
-            Compress dialogue into dense memory.
+            Compress dialogue into dense memory.  
+            ONE message = ONE line = ONE fact.
 
-            Keep:
+            Format (strict):
+            U: <user query, single line>
+            A: <answer, single line, no \n>
+        
+            One line = one message.
+            Absolutely no multiline answers. No line breaks inside U: or A:.
+            No explanations. No blank lines. No headers.
+
+            Keep only:
             - facts
             - decisions
             - preferences
@@ -270,13 +279,8 @@
             - greetings
             - emotions
             - repetition
-
-            Format:
-            U: ...
-            A: ...
-            One fact per line.
-
-            No explanations.
+            - meta commentary (e.g., "Here is...", "Below is...")
+            - line breaks inside A: — write everything in one continuous line 
         """);
 
         public string IncrementInputs(params object[] inputs)

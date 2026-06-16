@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
-using AIChatWebServer.Models.AI;
+﻿using AIChatWebServer.Models.AI;
 using AIChatWebServer.Models.Messages;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces.AI;
@@ -28,7 +27,13 @@ namespace AIChatWebServer.Services.Implementations.AI
 
             dispatcher.LoadFromHistory(history);
 
-            await dispatcher.AddMessage(new AIMessage(chatId, AIMessageRole.User, AIMessageType.Message, content), ct);
+            AIMessage message = await _aiMessageRepository.Add(
+                chatId, AIMessageRole.User,
+                AIMessageType.Message,
+                content,
+                ct);
+
+            await dispatcher.AddMessage(message, ct);
 
             var contextMessages = dispatcher
                 .GetCompressedMessages()

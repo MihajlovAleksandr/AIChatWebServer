@@ -128,5 +128,8 @@
 
         public static readonly IErrorCode ChatMessageDeletionDisabledByUserSettings =
             new ChatErrors("CHAT_MESSAGE_DELETION_DISABLED_BY_USER_SETTINGS");
+
+        public static readonly IErrorCode ChatUserNotFound =
+            new ChatErrors("CHAT_USER_NOT_FOUND");
     }
 }

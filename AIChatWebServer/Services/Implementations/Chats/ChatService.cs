@@ -1,10 +1,8 @@
-﻿using AIChatWebServer.Models.AI;
-using AIChatWebServer.Models.Chats;
+﻿using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Exceptions.Implementations.Chat;
 using AIChatWebServer.Models.Sync;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
-using System.Collections;
 
 namespace AIChatWebServer.Services.Implementations.Chats
 {
@@ -86,6 +84,12 @@ namespace AIChatWebServer.Services.Implementations.Chats
                 changes.Updated.Select(c => new ChatWithUserContext(c, userId)).ToList(),
                 changes.Deleted
             );
+        }
+
+        public async Task<Guid> GetUserIdByChatUserId(Guid chatUserId, CancellationToken ct = default)
+        {
+            return await _chatRepository.GetUserIdByChatUserId(chatUserId, ct)
+                ?? throw new ChatUserNotFoundException(chatUserId);
         }
     }
 }

@@ -7,23 +7,38 @@ namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class PaymentItemRepository : BaseRepository, IPaymentItemRepository
     {
+        private readonly ILogger<PaymentItemRepository> _logger;
+        private readonly IConfiguration _configuration;
         private readonly NpgsqlConnection? _conn;
         private readonly NpgsqlTransaction? _tx;
+        private readonly bool _isExternalConnection;
 
-        public PaymentItemRepository() { }
-
-        private PaymentItemRepository(NpgsqlConnection conn, NpgsqlTransaction tx)
+        public PaymentItemRepository(IConfiguration configuration,
+            ILogger<PaymentItemRepository> logger) : base(configuration)
         {
+            _configuration = configuration;
+            _logger = logger;
+            _isExternalConnection = false;
+        }
+
+        private PaymentItemRepository(IConfiguration configuration,
+            ILogger<PaymentItemRepository> logger,
+            NpgsqlConnection conn,
+            NpgsqlTransaction tx) : base(configuration)
+        {
+            _configuration = configuration;
+            _logger = logger;
             _conn = conn;
             _tx = tx;
+            _isExternalConnection = true;
         }
 
         public IPaymentItemRepository WithTransaction(NpgsqlConnection conn, NpgsqlTransaction tx)
-            => new PaymentItemRepository(conn, tx);
+            => new PaymentItemRepository(_configuration, _logger, conn, tx);
 
-        public Task CreateAsync(PaymentItem item, CancellationToken ct = default)
+        public async Task CreateAsync(PaymentItem item, CancellationToken ct = default)
         {
-            return ExecuteAsync(
+            await ExecuteAsync(
                 PaymentItemQueries.Insert,
                 ct,
                 ("@id", item.Id),
@@ -34,77 +49,181 @@ namespace AIChatWebServer.Repositories.Implementations
             );
         }
 
-        public Task<List<PaymentItem>> GetByPaymentAsync(Guid paymentId, string region, CancellationToken ct = default)
+        public async Task<List<PaymentItem>> GetByPaymentAsync(Guid paymentId, string region, CancellationToken ct = default)
         {
-            return ReadAsync(
+            return await ReadAsync(
                 PaymentItemQueries.GetByPayment,
-                region,
                 ct,
                 ("@payment_id", paymentId),
                 ("@region", region));
         }
 
+        public async Task<bool> HasUserPurchasedProductAsync(Guid userId, Guid productId, CancellationToken ct = default)
+        {
+            NpgsqlConnection? connection = null;
+            bool ownsConnection = false;
+
+            try
+            {
+                if (_isExternalConnection)
+                {
+                    connection = _conn;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    ownsConnection = true;
+                }
+
+                await using var cmd = new NpgsqlCommand(
+                    PaymentItemQueries.HasUserPurchasedProduct,
+                    connection,
+                    _tx);
+                cmd.Parameters.AddWithValue("@user_id", userId);
+                cmd.Parameters.AddWithValue("@product_id", productId);
+                cmd.Parameters.AddWithValue("@status", PaymentStatuses.Confirmed.ToString().ToUpperInvariant());
+
+                var result = await cmd.ExecuteScalarAsync(ct);
+                return result is bool b && b;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
+        }
+
         private async Task<List<PaymentItem>> ReadAsync(
             string sql,
-            string region,
             CancellationToken ct,
             params (string, object)[] parameters)
         {
-            var list = new List<PaymentItem>();
+            NpgsqlConnection? connection = null;
+            bool ownsConnection = false;
 
-            var conn = _conn ?? await GetConnectionAsync(ct);
+            try
+            {
+                if (_isExternalConnection)
+                {
+                    connection = _conn;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    ownsConnection = true;
+                }
 
-            await using var cmd = new NpgsqlCommand(sql, conn, _tx);
+                await using var cmd = new NpgsqlCommand(sql, connection, _tx);
 
-            foreach (var (n, v) in parameters)
-                cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
+                foreach (var (name, value) in parameters)
+                {
+                    cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+                }
 
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
 
-            while (await reader.ReadAsync(ct))
-                list.Add(Map(reader));
+                var list = new List<PaymentItem>();
 
-            return list;
+                while (await reader.ReadAsync(ct))
+                    list.Add(Map(reader));
+
+                return list;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
         }
 
-        private static PaymentItem Map(NpgsqlDataReader r)
+        private static PaymentItem Map(NpgsqlDataReader reader)
         {
             var product = new Product
             {
-                Id = r.GetGuid(r.GetOrdinal("p_id")),
-                Code = r.GetString(r.GetOrdinal("code")),
-                Name = r.GetString(r.GetOrdinal("name")),
-                Description = r.GetString(r.GetOrdinal("description")),
-                Type = Enum.Parse<PaymentType>(r.GetString(r.GetOrdinal("type"))),
-                Price = r.GetDecimal(r.GetOrdinal("product_price")),
-                Currency = r.GetString(r.GetOrdinal("currency")),
-                StripePriceId = r.GetString(r.GetOrdinal("stripe_price_id")),
+                Id = reader.GetGuid(reader.GetOrdinal("p_id")),
+                Code = reader.GetString(reader.GetOrdinal("code")),
+                Name = reader.GetString(reader.GetOrdinal("name")),
+                Description = reader.GetString(reader.GetOrdinal("description")),
+                Type = Enum.Parse<PaymentType>(reader.GetString(reader.GetOrdinal("type"))),
+                Price = reader.GetDecimal(reader.GetOrdinal("product_price")),
+                Currency = reader.GetString(reader.GetOrdinal("currency")),
+                StripePriceId = reader.GetString(reader.GetOrdinal("stripe_price_id")),
 
-                AttributesJson = r.GetString(r.GetOrdinal("attributes")),
-                IsActive = r.GetBoolean(r.GetOrdinal("is_active")),
-                CreatedAt = r.GetDateTime(r.GetOrdinal("created_at"))
+                AttributesJson = reader.GetString(reader.GetOrdinal("attributes")),
+                IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
+                CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at"))
             };
 
             return new PaymentItem
             {
-                Id = r.GetGuid(r.GetOrdinal("id")),
-                PaymentId = r.GetGuid(r.GetOrdinal("payment_id")),
+                Id = reader.GetGuid(reader.GetOrdinal("id")),
+                PaymentId = reader.GetGuid(reader.GetOrdinal("payment_id")),
                 Product = product,
-                Quantity = r.GetInt32(r.GetOrdinal("quantity")),
-                Price = r.GetDecimal(r.GetOrdinal("price"))
+                Quantity = reader.GetInt32(reader.GetOrdinal("quantity")),
+                Price = reader.GetDecimal(reader.GetOrdinal("price"))
             };
         }
 
-        private async Task ExecuteAsync(string sql, CancellationToken ct, params (string, object)[] parameters)
+        private async Task ExecuteAsync(
+            string sql,
+            CancellationToken ct,
+            params (string, object)[] parameters)
         {
-            var conn = _conn ?? await GetConnectionAsync(ct);
+            NpgsqlConnection? connection = null;
+            NpgsqlTransaction? transaction = null;
+            bool ownsConnection = false;
+            bool ownsTransaction = false;
 
-            await using var cmd = new NpgsqlCommand(sql, conn, _tx);
+            try
+            {
+                if (_isExternalConnection)
+                {
+                    connection = _conn;
+                    transaction = _tx;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    transaction = await connection.BeginTransactionAsync(ct);
+                    ownsConnection = true;
+                    ownsTransaction = true;
+                }
 
-            foreach (var (n, v) in parameters)
-                cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
+                await using var cmd = new NpgsqlCommand(sql, connection, transaction);
 
-            await cmd.ExecuteNonQueryAsync(ct);
+                foreach (var (name, value) in parameters)
+                {
+                    cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+                }
+
+                await cmd.ExecuteNonQueryAsync(ct);
+
+                if (ownsTransaction && transaction != null)
+                {
+                    await transaction.CommitAsync(ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ownsTransaction && transaction != null)
+                {
+                    await transaction.RollbackAsync(ct);
+                }
+
+                _logger.LogError(ex, "Failed to execute query: {Sql}", sql);
+                throw;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
         }
     }
 }

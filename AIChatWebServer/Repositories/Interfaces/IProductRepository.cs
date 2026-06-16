@@ -1,8 +1,9 @@
-﻿using AIChatWebServer.Models.Payment;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.Payment;
 
 namespace AIChatWebServer.Repositories.Interfaces
 {
-    public interface IProductRepository : ITransactionRepository<IProductRepository>
+    public interface IProductRepository : ITransactionalScope<IProductRepository>
     {
         Task<Product?> GetByIdAsync(
                     Guid id,

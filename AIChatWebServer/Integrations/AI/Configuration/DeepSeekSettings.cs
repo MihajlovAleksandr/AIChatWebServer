@@ -5,5 +5,6 @@
         public string ApiKey { get; set; } = string.Empty;
         public string ApiUrl { get; set; } = string.Empty;
         public int MaxTokenCount { get; set; }
+        public int MaxSystemTokenCount { get; set; }
     }
 }

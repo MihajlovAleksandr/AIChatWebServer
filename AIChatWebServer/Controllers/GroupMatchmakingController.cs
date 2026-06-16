@@ -4,8 +4,8 @@ using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Exceptions.Implementations.Chat.Matchmaking;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
+using AIChatWebServer.Services.Interfaces.Connections;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

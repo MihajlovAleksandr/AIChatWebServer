@@ -12,5 +12,6 @@ namespace AIChatWebServer.Hubs.Interfaces
         Task ChatUserRemoved(Guid chatId, Guid excludedConnectionId, ChatUserActionResponse response);
         Task ChatSearchingStatusUpdated(Guid userId, Guid excludedConnectionId, ChatSeachingStatusResponse response);
         Task GroupSearchingStatusUpdated(Guid userId, Guid excludedConnectionId, GroupSeachingStatusResponse response);
+        Task Typing(Guid chatId, Guid[] connectionIds, UserTypingResponse response);
     }
 }

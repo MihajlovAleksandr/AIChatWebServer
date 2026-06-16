@@ -1,4 +1,5 @@
-﻿using AIChatWebServer.Models.Chats;
+﻿using AIChatWebServer.Models.AI;
+using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces.AI;
 using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
@@ -20,7 +21,7 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
                     { aIId, $"Chat With {userId}" }
                 }, ct);
 
-            await _aISettingsService.CreateOrUpdate(id, Integrations.AI.AIModel.Default, null, ct);
+            await _aISettingsService.CreateOrUpdate(userId, id, AIModel.Default, null, ct);
             return id;
         }
     }

@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
-using AIChatWebServer.Models.AI;
+﻿using AIChatWebServer.Models.AI;
 using AIChatWebServer.Models.Chats.RandomChat;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Interfaces.AI;
@@ -103,7 +102,8 @@ namespace AIChatWebServer.Services.Implementations.Chats.RandomChatGame
                         AIModel.Default,
                         TokenOperation.GeneratePersona,
                         finalPrompt,
-                        ct: ct);
+                        ct: ct,
+                        isSustemPrompt: true);
 
                     if (string.IsNullOrWhiteSpace(response))
                         throw new Exception("Empty response");

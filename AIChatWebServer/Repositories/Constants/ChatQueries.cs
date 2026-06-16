@@ -313,5 +313,12 @@
                     )
                 );
             ";
+
+        public const string GetUserIdByChatUserId = @"
+            SELECT 
+                uc.user_id
+            FROM users_chats uc
+            WHERE uc.id = @chatUserId
+              AND uc.deleted_status = FALSE";
     }
 }

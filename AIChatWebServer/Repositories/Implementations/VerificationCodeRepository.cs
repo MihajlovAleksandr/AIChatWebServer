@@ -7,8 +7,7 @@ using System.Data;
 namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class VerificationCodeRepository(
-        ILogger<VerificationCodeRepository> logger) :
-        BaseRepository,
+        ILogger<VerificationCodeRepository> logger, IConfiguration configuration) : BaseRepository(configuration),
         IVerificationCodeRepository
     {
         private readonly ILogger<VerificationCodeRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));

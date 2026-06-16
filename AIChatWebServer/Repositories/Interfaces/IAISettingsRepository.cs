@@ -14,8 +14,9 @@ namespace AIChatWebServer.Repositories.Interfaces
             string? customPrompt,
             CancellationToken cancellationToken = default);
 
-        Task<bool> UpdatePrompt(
+        Task<bool> Update(
             Guid chatId,
+            int model,
             string? customPrompt,
             CancellationToken cancellationToken = default);
     }

@@ -1,6 +1,6 @@
 ﻿using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Messages;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Background;
 using AIChatWebServer.Services.Interfaces.Chats;
 using AIChatWebServer.Services.Interfaces.Messages;
 
@@ -42,7 +42,7 @@ namespace AIChatWebServer.Services.Implementations.Messages
                 replies,
                 ct);
 
-            await _notifier.MessageSent(messageContext.Message, connectionId, ct);
+            await _notifier.MessageSent(messageContext.Message, ct);
 
             var processor = _processorFactory.Create(chat.Type);
 
@@ -73,7 +73,7 @@ namespace AIChatWebServer.Services.Implementations.Messages
                         Array.Empty<MessageReply>(),
                         jobCt);
 
-                    await notifier.MessageSent(aiMessage.Message, null, CancellationToken.None);
+                    await notifier.MessageSent(aiMessage.Message, CancellationToken.None);
                 }, "ProcessAIResponse", error =>
                 {
                     _logger.LogError(error, "Failed to process AI response for message {MessageId}", message.Id);

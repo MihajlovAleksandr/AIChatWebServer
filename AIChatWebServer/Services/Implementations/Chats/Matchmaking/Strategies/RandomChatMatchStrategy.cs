@@ -1,9 +1,11 @@
-﻿using AIChatWebServer.Models.Chats;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Chats.RandomChat;
 using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Interfaces;
+using AIChatWebServer.Services.Background;
 using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
 using AIChatWebServer.Services.Interfaces.Chats.RandomChatGame;
 
@@ -12,12 +14,12 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
     public class RandomChatMatchStrategy(
         IRandomChatService randomChatService,
         IChatGameService chatGameService,
-        IUserProfileGenerator userProfileGenerator,
         IUnitOfWorkFactory unitOfWorkFactory,
         IMatchmakingRepository matchmakingRepository,
         IUserRepository userRepository,
         IChatRepository chatRepository, 
-        IConfiguration configuration) : IChatMatchStrategy
+        IConfiguration configuration,
+        IBackgroundJobService backgroundJobService) : IChatMatchStrategy
     {
         private readonly IUnitOfWorkFactory _unitOfWorkFactory = unitOfWorkFactory;
         private readonly IUserRepository _userRepository = userRepository;
@@ -25,7 +27,6 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
         private readonly IMatchmakingRepository _matchmakingRepository = matchmakingRepository;
         private readonly IChatGameService _chatGameService = chatGameService;
         private readonly IRandomChatService _randomChatService = randomChatService;
-        private readonly IUserProfileGenerator _userProfileGenerator = userProfileGenerator;
         private readonly int _expiredTime = int.Parse(configuration["Matchmaking:ExpiredHours"] 
             ?? throw new ArgumentException("Matchmaking ExpiredHours is not configured."));
         private readonly Guid aIId = Guid.Parse(configuration["SystemUsers:AIId"] 
@@ -65,7 +66,10 @@ namespace AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies
                     { aIId, $"RChat With {user.Id}" },
                     { user.Id, chatName}
                 },ct);
-            _ = Task.Run(async() => await _userProfileGenerator.GenerateAync(chatId, user, ct));
+            backgroundJobService.FireAndForget(async (serviceProvider, jobCt) => {
+                IUserProfileGenerator userProfileGenerator = serviceProvider.GetRequiredService<IUserProfileGenerator>();
+                await userProfileGenerator.GenerateAync(chatId, user, ct);
+            }, "CreateUserProfile", error =>{ });
             Chat chat = await _chatRepository.GetById(chatId)
                 ?? throw new ArgumentException();
             await _chatGameService.CreateGameAsync(chatId, chat.UsersWithData[user.Id].Id, chat.UsersWithData[aIId].Id, AiRole.RealAi, ct);

@@ -6,6 +6,7 @@ namespace AIChatWebServer.DTO.Response
     (
         [property: JsonPropertyName("id")] Guid Id,
         [property: JsonPropertyName("startTime")] DateTime StartTime,
-        [property: JsonPropertyName("endTime")] DateTime EndTime
+        [property: JsonPropertyName("endTime")] DateTime EndTime,
+        [property: JsonPropertyName("isAutoRenew")] bool IsAutoRenew
     );
 }

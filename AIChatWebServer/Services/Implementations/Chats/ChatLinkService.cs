@@ -1,7 +1,7 @@
 ﻿using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Links;
-using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Interfaces.Utils;
 using System.Text.Json;
 
 namespace AIChatWebServer.Services.Implementations.Chats

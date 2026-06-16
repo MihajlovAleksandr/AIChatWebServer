@@ -7,21 +7,36 @@ namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class UserPremiumRepository : BaseRepository, IUserPremiumRepository
     {
+        private readonly ILogger<UserPremiumRepository> _logger;
+        private readonly IConfiguration _configuration;
         private readonly NpgsqlConnection? _conn;
         private readonly NpgsqlTransaction? _tx;
+        private readonly bool _isExternalConnection;
 
-        public UserPremiumRepository() { }
-
-        private UserPremiumRepository(NpgsqlConnection conn, NpgsqlTransaction tx)
+        public UserPremiumRepository(IConfiguration configuration,
+            ILogger<UserPremiumRepository> logger) : base(configuration)
         {
+            _configuration = configuration;
+            _logger = logger;
+            _isExternalConnection = false;
+        }
+
+        private UserPremiumRepository(IConfiguration configuration,
+            ILogger<UserPremiumRepository> logger,
+            NpgsqlConnection conn,
+            NpgsqlTransaction tx) : base(configuration)
+        {
+            _configuration = configuration;
+            _logger = logger;
             _conn = conn;
             _tx = tx;
+            _isExternalConnection = true;
         }
 
         public IUserPremiumRepository WithTransaction(NpgsqlConnection conn, NpgsqlTransaction tx)
-            => new UserPremiumRepository(conn, tx);
+            => new UserPremiumRepository(_configuration, _logger, conn, tx);
 
-        public Task CreateAsync(
+        public async Task CreateAsync(
             Guid userId,
             Guid paymentItemId,
             DateTime startAt,
@@ -30,7 +45,7 @@ namespace AIChatWebServer.Repositories.Implementations
             string? subscriptionId = null,
             CancellationToken ct = default)
         {
-            return ExecuteAsync(
+            await ExecuteAsync(
                 UserPremiumQueries.Create,
                 ct,
                 ("@id", Guid.NewGuid()),
@@ -52,9 +67,9 @@ namespace AIChatWebServer.Repositories.Implementations
             return list.FirstOrDefault();
         }
 
-        public Task<List<UserPremium>> GetHistoryAsync(Guid userId, CancellationToken ct = default)
+        public async Task<List<UserPremium>> GetHistoryAsync(Guid userId, CancellationToken ct = default)
         {
-            return ReadAsync(
+            return await ReadAsync(
                 UserPremiumQueries.GetByUser,
                 ct,
                 ("@user_id", userId));
@@ -84,21 +99,42 @@ namespace AIChatWebServer.Repositories.Implementations
             string subscriptionId,
             CancellationToken ct = default)
         {
-            var conn = _conn ?? await GetConnectionAsync(ct);
+            NpgsqlConnection? connection = null;
+            bool ownsConnection = false;
 
-            await using var cmd = new NpgsqlCommand(
-                UserPremiumQueries.GetUserIdBySubscriptionId,
-                conn,
-                _tx);
+            try
+            {
+                if (_isExternalConnection)
+                {
+                    connection = _conn;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    ownsConnection = true;
+                }
 
-            cmd.Parameters.AddWithValue("@subscription_id", subscriptionId);
+                await using var cmd = new NpgsqlCommand(
+                    UserPremiumQueries.GetUserIdBySubscriptionId,
+                    connection,
+                    _tx);
 
-            var result = await cmd.ExecuteScalarAsync(ct);
+                cmd.Parameters.AddWithValue("@subscription_id", subscriptionId);
 
-            if (result == null || result == DBNull.Value)
-                return null;
+                var result = await cmd.ExecuteScalarAsync(ct);
 
-            return (Guid)result;
+                if (result == null || result == DBNull.Value)
+                    return null;
+
+                return (Guid)result;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
         }
 
         public async Task<UserPremium?> GetAutoRenewAsync(Guid userId, CancellationToken ct = default)
@@ -111,54 +147,136 @@ namespace AIChatWebServer.Repositories.Implementations
             return list.FirstOrDefault();
         }
 
-        public Task CancelAutoRenew(string subscriptionId, CancellationToken ct = default)
+        public async Task CancelAutoRenew(string subscriptionId, CancellationToken ct = default)
         {
-            return ExecuteAsync(
+            await ExecuteAsync(
                 UserPremiumQueries.CancelAutoRenew,
                 ct,
                 ("@subscriptionId", subscriptionId));
         }
 
-        private async Task<List<UserPremium>> ReadAsync(string sql, CancellationToken ct, params (string, object)[] parameters)
+        public async Task<UserPremium?> GetFirstBySubscriptionIdAsync(
+            string subscriptionId,
+            CancellationToken ct = default)
         {
-            var list = new List<UserPremium>();
+            var list = await ReadAsync(
+                UserPremiumQueries.GetFirstBySubscriptionId,
+                ct,
+                ("@subscription_id", subscriptionId));
 
-            var conn = _conn ?? await GetConnectionAsync(ct);
-            await using var cmd = new NpgsqlCommand(sql, conn, _tx);
-
-            foreach (var (n, v) in parameters)
-                cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
-
-            await using var r = await cmd.ExecuteReaderAsync(ct);
-
-            while (await r.ReadAsync(ct))
-                list.Add(Map(r));
-
-            return list;
+            return list.FirstOrDefault();
         }
 
-        private async Task ExecuteAsync(string sql, CancellationToken ct, params (string, object)[] parameters)
+        private async Task<List<UserPremium>> ReadAsync(
+            string sql,
+            CancellationToken ct,
+            params (string, object)[] parameters)
         {
-            var conn = _conn ?? await GetConnectionAsync(ct);
-            await using var cmd = new NpgsqlCommand(sql, conn, _tx);
+            NpgsqlConnection? connection = null;
+            bool ownsConnection = false;
 
-            foreach (var (n, v) in parameters)
-                cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
+            try
+            {
+                if (_isExternalConnection)
+                {
+                    connection = _conn;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    ownsConnection = true;
+                }
 
-            await cmd.ExecuteNonQueryAsync(ct);
+                await using var cmd = new NpgsqlCommand(sql, connection, _tx);
+
+                foreach (var (name, value) in parameters)
+                    cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+                var list = new List<UserPremium>();
+
+                while (await reader.ReadAsync(ct))
+                    list.Add(Map(reader));
+
+                return list;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
         }
 
-        private static UserPremium Map(NpgsqlDataReader r)
+        private async Task ExecuteAsync(
+            string sql,
+            CancellationToken ct,
+            params (string, object)[] parameters)
+        {
+            NpgsqlConnection? connection = null;
+            NpgsqlTransaction? transaction = null;
+            bool ownsConnection = false;
+            bool ownsTransaction = false;
+
+            try
+            {
+                if (_isExternalConnection)
+                {
+                    connection = _conn;
+                    transaction = _tx;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    transaction = await connection.BeginTransactionAsync(ct);
+                    ownsConnection = true;
+                    ownsTransaction = true;
+                }
+
+                await using var cmd = new NpgsqlCommand(sql, connection, transaction);
+
+                foreach (var (name, value) in parameters)
+                    cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+
+                await cmd.ExecuteNonQueryAsync(ct);
+
+                if (ownsTransaction && transaction != null)
+                {
+                    await transaction.CommitAsync(ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ownsTransaction && transaction != null)
+                {
+                    await transaction.RollbackAsync(ct);
+                }
+
+                _logger.LogError(ex, "Failed to execute query: {Sql}", sql);
+                throw;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
+        }
+
+        private static UserPremium Map(NpgsqlDataReader reader)
         {
             return new UserPremium
             {
-                Id = r.GetGuid(r.GetOrdinal("id")),
-                StartTime = r.GetDateTime(r.GetOrdinal("start_at")),
-                EndTime = r.GetDateTime(r.GetOrdinal("end_at")),
-                IsAutoRenew = r.GetBoolean(r.GetOrdinal("is_auto_renew")),
-                SubscriptionId = r.IsDBNull(r.GetOrdinal("subscription_id"))
+                Id = reader.GetGuid(reader.GetOrdinal("id")),
+                StartTime = reader.GetDateTime(reader.GetOrdinal("start_at")),
+                EndTime = reader.GetDateTime(reader.GetOrdinal("end_at")),
+                IsAutoRenew = reader.GetBoolean(reader.GetOrdinal("is_auto_renew")),
+                SubscriptionId = reader.IsDBNull(reader.GetOrdinal("subscription_id"))
                     ? null
-                    : r.GetString(r.GetOrdinal("subscription_id"))
+                    : reader.GetString(reader.GetOrdinal("subscription_id"))
             };
         }
     }

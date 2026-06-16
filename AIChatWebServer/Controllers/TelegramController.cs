@@ -3,7 +3,7 @@ using AIChatWebServer.Integrations.Telegram.DTO.Response;
 using AIChatWebServer.Integrations.Telegram.Models;
 using AIChatWebServer.Integrations.Telegram.Services.Interfaces;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Connections;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -19,7 +19,7 @@ namespace AIChatWebServer.Utils.Implementations.Mappers
 
         public UserPremiumResponse ToResponse(UserPremium model)
         {
-            return new UserPremiumResponse(model.Id, model.StartTime, model.EndTime);
+            return new UserPremiumResponse(model.Id, model.StartTime, model.EndTime, model.IsAutoRenew);
         }
     }
 }

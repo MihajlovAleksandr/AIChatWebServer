@@ -6,6 +6,6 @@ namespace AIChatWebServer.DTO.Response
     (
         [property: JsonPropertyName("userData")] UserDataResponse UserData,
         [property: JsonPropertyName("lastOnline")] DateTime? LastOnline,
-        [property: JsonPropertyName("region")] string region
+        [property: JsonPropertyName("region")] string Region
     );
 }

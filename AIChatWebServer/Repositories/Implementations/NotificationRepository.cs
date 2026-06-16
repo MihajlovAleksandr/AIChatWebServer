@@ -8,7 +8,7 @@ using NpgsqlTypes;
 namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class NotificationRepository(
-        ILogger<NotificationRepository> logger) : BaseRepository, INotificationRepository
+        ILogger<NotificationRepository> logger, IConfiguration configuration) : BaseRepository(configuration), INotificationRepository
     {
         private readonly ILogger<NotificationRepository> _logger =
             logger ?? throw new ArgumentNullException(nameof(logger));

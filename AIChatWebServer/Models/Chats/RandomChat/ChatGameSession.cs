@@ -65,5 +65,16 @@
                 ? GetGuesser()
                 : GetOpponent();
         }
+
+        public ChatGameParticipant? GetLoser()
+        {
+            var isCorrect = IsCorrect();
+            if (isCorrect is null)
+                return null;
+
+            return isCorrect.Value
+                ? GetOpponent() 
+                : GetGuesser();
+        }
     }
 }

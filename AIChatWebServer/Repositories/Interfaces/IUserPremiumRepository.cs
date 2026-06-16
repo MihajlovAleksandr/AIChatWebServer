@@ -1,9 +1,10 @@
-﻿using AIChatWebServer.Models.User;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.User;
 
 namespace AIChatWebServer.Repositories.Interfaces
 {
     public interface IUserPremiumRepository
-        : ITransactionRepository<IUserPremiumRepository>
+        : ITransactionalScope<IUserPremiumRepository>
     {
         Task CreateAsync(
                     Guid userId,
@@ -30,6 +31,10 @@ namespace AIChatWebServer.Repositories.Interfaces
             CancellationToken ct = default);
 
         Task<Guid?> GetUserIdBySubscriptionIdAsync(
+            string subscriptionId,
+            CancellationToken ct = default);
+
+        Task<UserPremium?> GetFirstBySubscriptionIdAsync(
             string subscriptionId,
             CancellationToken ct = default);
 

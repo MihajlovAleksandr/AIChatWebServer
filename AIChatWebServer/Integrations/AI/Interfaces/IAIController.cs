@@ -6,7 +6,8 @@ namespace AIChatWebServer.Integrations.AI.Interfaces
     {
         Task<AIMessageResponse?> SendMessageAsync(
             IEnumerable<AIMessageRequest> messages,
-            string model);
+            string model,
+            bool isSystemPrompt = false);
     }
 
 }

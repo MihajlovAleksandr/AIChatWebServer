@@ -30,9 +30,12 @@ namespace AIChatWebServer.Middlewares
             HttpContext context,
             ApiExceptionBase exception)
         {
+            var endpointPath = $"{context.Request.Method} {context.Request.Path}{context.Request.QueryString}";
+
             _logger.LogWarning(
                 exception,
-                "API exception: {Message}",
+                "API exception at endpoint {Endpoint}: {Message}",
+                endpointPath,
                 exception.Message);
 
             context.Response.Clear();
@@ -48,9 +51,12 @@ namespace AIChatWebServer.Middlewares
             HttpContext context,
             Exception exception)
         {
+            var endpointPath = $"{context.Request.Method} {context.Request.Path}{context.Request.QueryString}";
+
             _logger.LogError(
                 exception,
-                "Unhandled exception");
+                "Unhandled exception at endpoint {Endpoint}",
+                endpointPath);
 
             context.Response.Clear();
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;

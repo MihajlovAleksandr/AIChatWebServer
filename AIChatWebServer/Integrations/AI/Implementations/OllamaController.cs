@@ -58,7 +58,8 @@ namespace AIChatWebServer.Integrations.AI.Implementations
 
         public async Task<AIMessageResponse?> SendMessageAsync(
             IEnumerable<AIMessageRequest> aiMessages,
-            string model)
+            string model,
+            bool isSystemPrompt = false)
         {
             if (aiMessages == null || !aiMessages.Any())
             {

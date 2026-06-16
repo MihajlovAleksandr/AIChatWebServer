@@ -1,6 +1,5 @@
 ﻿using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Hubs.Interfaces;
-using AIChatWebServer.Services.Interfaces;
 
 namespace AIChatWebServer.Hubs.Implementations
 {

@@ -59,6 +59,11 @@ namespace AIChatWebServer.Services.Implementations.AI
             _messages.RemoveRange(0, toCompress.Count);
 
             var compressed = await _compressor.Compress(toCompress, ct);
+            
+            foreach(var message in toCompress)
+            {
+                await _repository.Delete(message.Id, ct);
+            }
 
             _compressedMessages.Add(compressed);
 
@@ -84,6 +89,11 @@ namespace AIChatWebServer.Services.Implementations.AI
                 .ToList();
 
             _compressedMessages.RemoveRange(0, toCompress.Count);
+
+            foreach (var message in toCompress)
+            {
+                await _repository.Delete(message.Id, ct);
+            }
 
             var compressed = await _compressor.Compress(toCompress, ct);
 

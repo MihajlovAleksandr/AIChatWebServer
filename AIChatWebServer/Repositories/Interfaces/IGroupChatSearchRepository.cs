@@ -1,8 +1,9 @@
-﻿using AIChatWebServer.Models.Chats.Matchmaking;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.Chats.Matchmaking;
 
 namespace AIChatWebServer.Repositories.Interfaces
 {
-    public interface IGroupChatSearchRepository : ITransactionRepository<IGroupChatSearchRepository>
+    public interface IGroupChatSearchRepository : ITransactionalScope<IGroupChatSearchRepository>
     {
         Task<Guid> EnqueueAsync(
             Guid chatId,

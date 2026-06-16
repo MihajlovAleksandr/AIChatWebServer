@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
-using AIChatWebServer.Models.AI;
+﻿using AIChatWebServer.Models.AI;
 using AIChatWebServer.Repositories.Constants;
 using AIChatWebServer.Repositories.Interfaces;
 using Npgsql;
@@ -7,7 +6,7 @@ using NpgsqlTypes;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class AIMessageRepository : BaseRepository, IAIMessageRepository
+    public sealed class AIMessageRepository(IConfiguration configuration) : BaseRepository(configuration), IAIMessageRepository
     {
         public async Task<AIMessage> Add(
             Guid chatId,

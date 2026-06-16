@@ -1,4 +1,6 @@
-﻿namespace AIChatWebServer.Integrations.AI.Implementations
+﻿using AIChatWebServer.Models.AI;
+
+namespace AIChatWebServer.Integrations.AI.Implementations
 {
     public static class AIModelResolver
     {

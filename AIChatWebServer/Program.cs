@@ -1,3 +1,6 @@
+using AIChatWebServer.Contracts.UnitOfWork.Implementations;
+using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Extensions;
 using AIChatWebServer.Hubs.Implementations;
 using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Integrations.AI.Configuration;
@@ -10,31 +13,43 @@ using AIChatWebServer.Integrations.Telegram.Services.Interfaces;
 using AIChatWebServer.Middlewares;
 using AIChatWebServer.Models.AI;
 using AIChatWebServer.Models.Exceptions.Implementations.Auth;
+using AIChatWebServer.Models.Payment;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Repositories.Implementations;
 using AIChatWebServer.Repositories.Interfaces;
+using AIChatWebServer.Services.Background;
 using AIChatWebServer.Services.Context.Implementations;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Implementations;
 using AIChatWebServer.Services.Implementations.AI;
+using AIChatWebServer.Services.Implementations.Auth;
 using AIChatWebServer.Services.Implementations.Chats;
 using AIChatWebServer.Services.Implementations.Chats.ChatPolicyValidator;
 using AIChatWebServer.Services.Implementations.Chats.Matchmaking;
 using AIChatWebServer.Services.Implementations.Chats.Matchmaking.Predicates;
 using AIChatWebServer.Services.Implementations.Chats.Matchmaking.Strategies;
 using AIChatWebServer.Services.Implementations.Chats.RandomChatGame;
+using AIChatWebServer.Services.Implementations.Chats.Ranks;
+using AIChatWebServer.Services.Implementations.Connections;
+using AIChatWebServer.Services.Implementations.Files;
 using AIChatWebServer.Services.Implementations.Messages;
 using AIChatWebServer.Services.Implementations.Messages.Processors;
 using AIChatWebServer.Services.Implementations.Notifications;
 using AIChatWebServer.Services.Implementations.Payments;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Implementations.Users;
+using AIChatWebServer.Services.Implementations.Utils;
 using AIChatWebServer.Services.Interfaces.AI;
+using AIChatWebServer.Services.Interfaces.Auth;
 using AIChatWebServer.Services.Interfaces.Chats;
 using AIChatWebServer.Services.Interfaces.Chats.Matchmaking;
 using AIChatWebServer.Services.Interfaces.Chats.RandomChatGame;
+using AIChatWebServer.Services.Interfaces.Chats.Ranks;
+using AIChatWebServer.Services.Interfaces.Connections;
+using AIChatWebServer.Services.Interfaces.Files;
 using AIChatWebServer.Services.Interfaces.Messages;
 using AIChatWebServer.Services.Interfaces.Notifications;
 using AIChatWebServer.Services.Interfaces.Payments;
+using AIChatWebServer.Services.Interfaces.Users;
+using AIChatWebServer.Services.Interfaces.Utils;
 using AIChatWebServer.Utils.Errors;
 using AIChatWebServer.Utils.Implementations;
 using AIChatWebServer.Utils.Implementations.Mappers;
@@ -45,11 +60,17 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using Stripe;
 using System.Text;
+using FileService = AIChatWebServer.Services.Implementations.Files.FileService;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMappers();
+builder.Services.AddSingleton<ILogsRepository, LogsRepository>();
+
+builder.Logging.ClearProviders();
+builder.Logging.AddCustomLogging();
 
 var redisConnectionString =
     builder.Configuration["Redis:ConnectionString"]
@@ -70,6 +91,27 @@ builder.Services.Configure<AISettings>(
 builder.Services.Configure<SystemUsersOptions>(
     builder.Configuration.GetSection("SystemUsers"));
 
+builder.Services.Configure<ModelPaymentSettings>(
+    builder.Configuration.GetSection("Payments:Models"));
+builder.Services.AddSingleton(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+
+    var secretKey =
+        configuration["Stripe:SecretKey"]
+        ?? throw new InvalidOperationException(
+            "Stripe:SecretKey is not configured.");
+
+    return new StripeClient(secretKey);
+});
+
+builder.Services.AddScoped(sp =>
+{
+    var client =
+        sp.GetRequiredService<StripeClient>();
+
+    return new SubscriptionService(client);
+});
 builder.Services.AddSingleton<BackgroundJobService>();
 builder.Services.AddSingleton<IBackgroundJobService>(sp => sp.GetRequiredService<BackgroundJobService>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BackgroundJobService>());
@@ -131,6 +173,7 @@ builder.Services.AddScoped<IVerificationCodeSender, VerificationCodeSender>();
 builder.Services.AddScoped<NotificationSettingsMapper>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserAiRepository, UserAiRepository>();
 builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
@@ -145,6 +188,12 @@ builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IAIMessageRepository, AIMessageRepository>();
 builder.Services.AddScoped<IAISettingsRepository, AISettingsRepository>();
 builder.Services.AddScoped<IChatGameRepository, ChatGameRepository>();
+builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
+builder.Services.AddScoped<IAIMessageRepository, AIMessageRepository>();
+builder.Services.AddScoped<IUserPointsRepository, UserPointsRepository>();
+builder.Services.AddScoped<IPointTransactionsRepository, PointTransactionsRepository>();
+builder.Services.AddScoped<IRankLevelsRepository, RankLevelsRepository>();
+builder.Services.AddScoped<IUserRankHistoryRepository, UserRankHistoryRepository>();
 builder.Services.AddScoped<IUserProfileStore, RedisUserProfileStore>();
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -152,16 +201,22 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentItemRepository, PaymentItemRepository>();
 builder.Services.AddScoped<IUserPremiumRepository, UserPremiumRepository>();
 
+builder.Services.AddScoped<IUserAiService, UserAiService>();
 builder.Services.AddScoped<IAuthLoginService, AuthLoginService>();
 builder.Services.AddScoped<IAuthRegistrationService, AuthRegistrationService>();
 builder.Services.AddScoped<IAuthOAuthService, AuthOAuthService>();
+builder.Services.AddScoped<IProductAccessRule, SingleItemProductRule>();
+builder.Services.AddScoped<IProductAccessRule, SubscriptionProductRule>();
 
+builder.Services.AddScoped<IProductAccessFilter, ProductAccessFilter>();
+builder.Services.AddScoped<ISubscriptionPaymentDataCreator, SubscriptionPaymentDataCreator>();
 builder.Services.AddScoped<IUserPremiumService, UserPremiumService>();
 builder.Services.AddScoped<IUserDeletionService, UserDeletionService>();
 builder.Services.AddScoped<IAISettingsService, AISettingsService>();
+builder.Services.AddScoped<IPointsService , PointsService>();
+builder.Services.AddScoped<IPointsCalculator, PointsCalculator>();
 builder.Services.AddScoped<RandomMessageProcessor>();
 builder.Services.AddScoped<AIChatMessageProcessor>();
-builder.Services.AddScoped<IChatGameService, ChatGameService>();
 builder.Services.AddScoped<IMessageVisibilityPolicy, MessageVisibilityPolicy>();
 builder.Services.AddScoped<IUploadSessionTtlCalculator, UploadSessionTtlCalculator>();
 builder.Services.AddScoped<IConnectionService, ConnectionService>();
@@ -179,6 +234,7 @@ builder.Services.AddScoped<IEntryCodeService, EntryCodeService>();
 builder.Services.AddScoped<IVerificationCodeService, VerificationCodeService>();
 builder.Services.AddScoped<IConnectionValidator, ConnectionValidator>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<IServerValidator, ServerValidator>();
 
 builder.Services.AddScoped<NotificationService>();
@@ -198,6 +254,8 @@ builder.Services.AddScoped<IUserSettingsFactory, UserSettingsFactory>();
 builder.Services.AddScoped<IUserMatchPredicateFactory, UserMatchPredicateFactory>();
 builder.Services.AddScoped<IConversationActionValidator, ConversationActionValidator>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IChatGameResultProcessor, ChatGameResultProcessor>();
+builder.Services.AddScoped<IChatGameService, ChatGameService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<ILinkService, LinkService>();
 builder.Services.AddScoped<ITelegramLinkService, TelegramLinkService>();
@@ -217,6 +275,11 @@ builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 builder.Services.AddScoped<IPurchaseHandler, PremiumSubscriptionPurchaseHandler>();
 builder.Services.AddScoped<IPurchaseHandler, PremiumOneTimePurchaseHandler>();
+builder.Services.AddScoped<IPurchaseHandler, ModelOneTimePurchaseHandler>();
+builder.Services.AddScoped<IPaymentVerifier, OneTimePaymentVerifier>();
+builder.Services.AddScoped<IPaymentVerifier, SubscriptionPaymentVerifier>();
+builder.Services.AddScoped<IPaymentVerifier, SingleItemPaymentVerifier>();
+builder.Services.AddScoped<IPaymentVerifierFactory, PaymentVerifierFactory>();
 builder.Services.AddScoped<IPaymentOrchestrator, StripePaymentOrchestrator>();
 builder.Services.AddScoped<IPaymentDispatcher, PaymentDispatcher>();
 
@@ -227,6 +290,9 @@ builder.Services.AddScoped<IEntryTokenFactory, EntryTokenFactory>();
 
 builder.Services.AddScoped<IClientContext, ClientContext>();
 builder.Services.AddScoped<ITokenContextFactory, TokenContextFactory>();
+
+builder.Services.AddHostedService<
+    PaymentExpirationBackgroundService>();
 
 builder.Services.AddScoped<IWorkTokenContext>(sp =>
 {
@@ -360,8 +426,8 @@ app.UseMiddleware<PremiumRequiredExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseStaticFiles();
 app.MapControllers();
 app.MapHub<ChatHub>("/ws/chat");
-
+app.Map("/", () => "Welcome!");
 app.Run();

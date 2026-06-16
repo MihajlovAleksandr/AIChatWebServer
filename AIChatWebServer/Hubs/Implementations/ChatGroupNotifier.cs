@@ -3,6 +3,8 @@ using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Notification;
 using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Interfaces.Connections;
+using AIChatWebServer.Services.Interfaces.Messages;
 using AIChatWebServer.Services.Interfaces.Notifications;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 
@@ -11,14 +13,18 @@ namespace AIChatWebServer.Hubs.Implementations
     public class ChatGroupNotifier(
         IChatEventsDispatcher chatEventsDispatcher,
         IHubGroupDispatcher hubGroupDispatcher,
+        IMessageVisibilityPolicy policy,
         IChatService chatService,
+        IConnectionService connectionService,
         INotificationFacade notificationFacade,
         IResponseMapper<ChatWithUserContext, ChatResponse> responseMapper) : IChatGroupNotifier
     {
         private readonly IChatEventsDispatcher _chatEventsDispatcher = chatEventsDispatcher;
         private readonly IHubGroupDispatcher _hubGroupDispatcher = hubGroupDispatcher;
+        private readonly IMessageVisibilityPolicy _policy = policy;
         private readonly IChatService _chatService = chatService;
         private readonly IResponseMapper<ChatWithUserContext, ChatResponse> _responseMapper = responseMapper;
+        private readonly IConnectionService _connectionService = connectionService;
         private readonly INotificationFacade _notificationFacade = notificationFacade;
 
         public async Task ChatCreated(Guid chatId, Guid userId, Guid? excludedConnectionId, CancellationToken ct)
@@ -126,6 +132,16 @@ namespace AIChatWebServer.Hubs.Implementations
                 userId,
                 excludedConnectionId,
                 new GroupSeachingStatusResponse(isSearching, chatId));
+        }
+
+        public async Task Typing(Guid chatId, Guid userId, bool isTyping)
+        {
+            Chat chat = await _chatService.GetById(chatId);
+
+            var connections = await _connectionService.GetAllUserConnectionsAsync(userId);
+
+            if (_policy.ShouldIncludeStatuses(chat.Type))
+               await _chatEventsDispatcher.Typing(chatId, connections.Select(c => c.Id).ToArray(), new UserTypingResponse(userId, chatId, isTyping));
         }
     }
 }

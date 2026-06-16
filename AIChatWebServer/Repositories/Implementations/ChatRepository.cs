@@ -9,7 +9,7 @@ using NpgsqlTypes;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class ChatRepository : BaseRepository, IChatRepository
+    public sealed class ChatRepository(IConfiguration configuration) : BaseRepository(configuration), IChatRepository
     {
         public async Task<Guid> CreateAsync(
             ChatType type,
@@ -506,5 +506,21 @@ namespace AIChatWebServer.Repositories.Implementations
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
+        public async Task<Guid?> GetUserIdByChatUserId(Guid chatUserId, CancellationToken cancellationToken = default)
+        {
+            await using var conn = await GetConnectionAsync(cancellationToken);
+            await using var cmd = new NpgsqlCommand(ChatQueries.GetUserIdByChatUserId, conn);
+
+            cmd.Parameters.AddWithValue("@chatUserId", chatUserId);
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+            if (await reader.ReadAsync(cancellationToken))
+            {
+               return reader.GetGuid(reader.GetOrdinal("user_id"));
+            }
+
+            return null;
+        }
     }
 }

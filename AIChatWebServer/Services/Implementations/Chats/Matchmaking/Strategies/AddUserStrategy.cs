@@ -1,4 +1,5 @@
-﻿using AIChatWebServer.Models.Chats;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.Matchmaking;
 using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;

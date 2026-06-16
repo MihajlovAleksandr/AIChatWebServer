@@ -23,21 +23,19 @@ namespace AIChatWebServer.Hubs.Implementations
         private readonly IMessageEventDispatcher _messageEventDispatcher = messageEventDispatcher;
         private readonly INotificationFacade _notificationFacade = notificationFacade;
 
-        public async Task MessageSent(Message message, Guid? senderConnectionId, CancellationToken ct)
+        public async Task MessageSent(Message message, CancellationToken ct)
         {
             Chat chat = await _chatService.GetById(message.ChatId, ct);
             bool includeStatuses = _messageVisibilityPolicy.ShouldIncludeStatuses(chat.Type);
 
             var tasks = chat.UsersWithData.Keys.Select(userId =>
             {
-                Guid? excludedConnectionId = message.UserId == userId ? senderConnectionId : null;
-
                 var response = _mapper.ToResponse(
                     new MessageContext(message, userId, includeStatuses));
 
                 return _messageEventDispatcher.MessageSent(
                     userId,
-                    excludedConnectionId,
+                    null,
                     response,
                     ct);
             }).ToList();
@@ -94,7 +92,7 @@ namespace AIChatWebServer.Hubs.Implementations
                     return _messageEventDispatcher.MessageStatusUpdated(
                         userId,
                         senderConnectionId,
-                        new MessageStatusUpdatedResponse(messages, senderUserId, status),
+                        new MessageStatusUpdatedResponse(messages, senderUserId, chatId, status),
                         ct);
                 }
 
@@ -106,7 +104,7 @@ namespace AIChatWebServer.Hubs.Implementations
                 return _messageEventDispatcher.MessageStatusUpdated(
                     userId,
                     null,
-                    new MessageStatusUpdatedResponse(messages, senderUserId, status),
+                    new MessageStatusUpdatedResponse(messages, senderUserId, chatId, status),
                     ct);
             });
 

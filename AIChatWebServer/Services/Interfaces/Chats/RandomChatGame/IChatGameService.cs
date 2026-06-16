@@ -1,4 +1,5 @@
-﻿using AIChatWebServer.Models.Chats.RandomChat;
+﻿using AIChatWebServer.Models.Chats;
+using AIChatWebServer.Models.Chats.RandomChat;
 
 namespace AIChatWebServer.Services.Interfaces.Chats.RandomChatGame
 {
@@ -20,11 +21,11 @@ namespace AIChatWebServer.Services.Interfaces.Chats.RandomChatGame
             CancellationToken ct = default);
 
         Task<ChatGameSession> MakeGuessAsync(
-            Guid sessionId,
+            Guid chatId,
             AiRole guessedAiRole,
             CancellationToken ct = default);
 
-        Task<bool> GetResultAsync(
+        Task<ChatGameState> GetResultAsync(
             Guid sessionId,
             CancellationToken ct = default);
     }

@@ -8,7 +8,7 @@ using System.Data;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class MessageRepository : BaseRepository, IMessageRepository
+    public sealed class MessageRepository(IConfiguration configuration) : BaseRepository(configuration), IMessageRepository
     {
         public async Task<Guid> CreateAsync(
             Guid id,

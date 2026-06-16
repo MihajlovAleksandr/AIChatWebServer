@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
-using AIChatWebServer.Models.AI;
+﻿using AIChatWebServer.Models.AI;
 using AIChatWebServer.Repositories.Constants;
 using AIChatWebServer.Repositories.Interfaces;
 using Npgsql;
@@ -7,7 +6,7 @@ using NpgsqlTypes;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class AISettingsRepository : BaseRepository, IAISettingsRepository
+    public sealed class AISettingsRepository(IConfiguration configuration) : BaseRepository(configuration), IAISettingsRepository
     {
         public async Task<AISettingsModel?> GetByChatId(
             Guid chatId,
@@ -68,15 +67,13 @@ namespace AIChatWebServer.Repositories.Implementations
             );
         }
 
-        public async Task<bool> UpdatePrompt(
-            Guid chatId,
-            string? customPrompt,
-            CancellationToken cancellationToken = default)
+        public async Task<bool> Update(Guid chatId, int model, string? customPrompt, CancellationToken cancellationToken = default)
         {
             await using var conn = await GetConnectionAsync(cancellationToken);
-            await using var cmd = new NpgsqlCommand(AISettingsQueries.UpdatePrompt, conn);
+            await using var cmd = new NpgsqlCommand(AISettingsQueries.Update, conn);
 
             cmd.Parameters.AddWithValue("@chatId", chatId);
+            cmd.Parameters.AddWithValue("@model", model);
 
             if (customPrompt is null)
                 cmd.Parameters.AddWithValue("@customPrompt", DBNull.Value);

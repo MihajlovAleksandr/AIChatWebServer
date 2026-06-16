@@ -17,5 +17,6 @@ namespace AIChatWebServer.Repositories.Interfaces
         Task UpdateChatSettings(Guid chatId, ChatSettings settings, CancellationToken cancellationToken = default);
         Task UpdateUserSettings(Guid chatId, Guid userId, UserSettings settings, CancellationToken cancellationToken = default);
         Task<SyncChatsResult> GetChangesAsync(Guid userId, DateTime since, CancellationToken ct);
+        Task<Guid?> GetUserIdByChatUserId(Guid chatUserId, CancellationToken cancellationToken = default);
     }
 }

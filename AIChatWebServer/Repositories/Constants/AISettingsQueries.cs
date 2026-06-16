@@ -14,9 +14,10 @@
             VALUES (@id, @chatId, @customPrompt, @model, CURRENT_TIMESTAMP);
         ";
 
-        public const string UpdatePrompt = @"
+        public const string Update = @"
             UPDATE ai_settings
             SET custom_prompt = @customPrompt,
+                model = @model,
                 last_update = CURRENT_TIMESTAMP
             WHERE chat_id = @chatId;
         ";

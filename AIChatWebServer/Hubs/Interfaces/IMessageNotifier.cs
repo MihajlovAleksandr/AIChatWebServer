@@ -6,7 +6,6 @@ namespace AIChatWebServer.Hubs.Interfaces
     {
         Task MessageSent(
             Message message,
-            Guid? senderConnectionId,
             CancellationToken ct);
 
         Task MessageEdited(

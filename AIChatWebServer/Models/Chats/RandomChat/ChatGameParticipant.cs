@@ -23,12 +23,10 @@ public sealed record ChatGameParticipant
 
     private void Validate()
     {
-        // GUESSER не должен иметь ai_role
         if (GameRole == GameRole.Guesser && AiRole is not null)
             throw new InvalidOperationException(
                 "Guesser must not have AiRole");
 
-        // OPPONENT обязан иметь ai_role
         if (GameRole == GameRole.Opponent && AiRole is null)
             throw new InvalidOperationException(
                 "Opponent must have AiRole");

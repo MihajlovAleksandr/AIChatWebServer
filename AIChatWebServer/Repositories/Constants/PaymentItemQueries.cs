@@ -56,5 +56,15 @@
             ORDER BY 
                 pi.id,
                 CASE WHEN pp.region_code = @region THEN 0 ELSE 1 END;";
+
+        public const string HasUserPurchasedProduct = @"
+            SELECT EXISTS (
+                SELECT 1
+                FROM payment p
+                JOIN payment_item pi ON pi.payment_id = p.id
+                WHERE p.user_id = @user_id
+                  AND pi.product_id = @product_id
+                  AND p.status = @status
+            );";
     }
 }

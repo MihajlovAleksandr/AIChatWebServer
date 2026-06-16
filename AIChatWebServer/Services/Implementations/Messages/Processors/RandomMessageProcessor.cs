@@ -1,4 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
+﻿using AIChatWebServer.Models.AI;
 using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.RandomChat;
 using AIChatWebServer.Models.Messages;

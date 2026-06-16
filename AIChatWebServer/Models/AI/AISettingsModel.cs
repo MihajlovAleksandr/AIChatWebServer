@@ -1,6 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
-
-namespace AIChatWebServer.Models.AI
+﻿namespace AIChatWebServer.Models.AI
 {
     public sealed class AISettingsModel
     {

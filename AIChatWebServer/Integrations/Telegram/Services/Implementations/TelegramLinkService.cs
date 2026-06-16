@@ -2,7 +2,8 @@
 using AIChatWebServer.Integrations.Telegram.Services.Interfaces;
 using AIChatWebServer.Models.Links;
 using AIChatWebServer.Models.User;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Users;
+using AIChatWebServer.Services.Interfaces.Utils;
 
 namespace AIChatWebServer.Integrations.Telegram.Services.Implementations
 {

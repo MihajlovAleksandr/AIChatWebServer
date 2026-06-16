@@ -13,5 +13,6 @@ namespace AIChatWebServer.Hubs.Interfaces
 
         Task ChatSearchingStatusUpdated(Guid userId, Guid excludedConnectionId, bool isSearching);
         Task GroupSearchingStatusUpdated(Guid userId, Guid excludedConnectionId, bool isSearching, Guid? chatId);
+        Task Typing(Guid chatId, Guid userId, bool isTyping);
     }
 }

@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
-using AIChatWebServer.Models.AI;
+﻿using AIChatWebServer.Models.AI;
 
 namespace AIChatWebServer.Services.Interfaces.AI
 {
@@ -10,14 +9,14 @@ namespace AIChatWebServer.Services.Interfaces.AI
             CancellationToken cancellationToken = default);
 
         Task<AISettingsModel> CreateOrUpdate(
+            Guid userId,
             Guid chatId,
             AIModel model,
             string? customPrompt,
             CancellationToken cancellationToken = default);
 
-        Task<AISettingsModel> UpdatePrompt(
-            Guid chatId,
-            string? customPrompt,
-            CancellationToken cancellationToken = default);
+        Task<IReadOnlyCollection<AIModel>> GetAvibleModels(
+            Guid userId,
+            CancellationToken ct = default);
     }
 }

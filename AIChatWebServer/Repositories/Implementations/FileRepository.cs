@@ -6,7 +6,7 @@ using System.Data;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class FileRepository : BaseRepository, IFileRepository
+    public sealed class FileRepository(IConfiguration configuration) : BaseRepository(configuration), IFileRepository
     {
         public async Task<Guid> CreateAsync(
             Guid id,

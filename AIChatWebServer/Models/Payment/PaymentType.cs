@@ -6,6 +6,7 @@ namespace AIChatWebServer.Models.Payment
     public enum PaymentType
     {
         Subscription,
-        Payment
+        Payment,
+        SingleItem
     }
 }

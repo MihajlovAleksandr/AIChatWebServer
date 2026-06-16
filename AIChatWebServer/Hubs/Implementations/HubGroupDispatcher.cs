@@ -1,7 +1,7 @@
 ﻿using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Chats;
-using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Interfaces.Connections;
 using ConnectionInfo = AIChatWebServer.Models.Connection.ConnectionInfo;
 
 namespace AIChatWebServer.Hubs.Implementations

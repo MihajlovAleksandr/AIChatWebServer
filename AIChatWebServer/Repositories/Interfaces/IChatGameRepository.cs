@@ -1,8 +1,9 @@
-﻿using AIChatWebServer.Models.Chats.RandomChat;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.Chats.RandomChat;
 
 namespace AIChatWebServer.Repositories.Interfaces;
 
-public interface IChatGameRepository
+public interface IChatGameRepository : ITransactionalScope<IChatGameRepository>
 {
     Task<Guid> CreateAsync(
         Guid chatId,

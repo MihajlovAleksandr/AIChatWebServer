@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
-using AIChatWebServer.Models.AI;
+﻿using AIChatWebServer.Models.AI;
 using AIChatWebServer.Services.Interfaces.AI;
 using AIChatWebServer.Utils.AI;
 
@@ -35,7 +34,8 @@ namespace AIChatWebServer.Services.Implementations.AI
                             AIMessageType.Message,
                             messages[0].Content)
                     },
-                    cancellationToken);
+                    cancellationToken,
+                    true);
             }
             else
             {
@@ -52,7 +52,7 @@ namespace AIChatWebServer.Services.Implementations.AI
                             AIMessageType.Message,
                             BuildDialogText(messages))
                     },
-                    cancellationToken);
+                    cancellationToken, true);
             }
 
             return new AIMessage(

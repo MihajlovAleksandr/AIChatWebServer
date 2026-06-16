@@ -26,5 +26,14 @@ namespace AIChatWebServer.Services.Interfaces.Payments
             string? type,
             Guid userId,
             CancellationToken ct);
+
+        Task<Product> GetProduct(
+            Guid productId,
+            Guid userId,
+            CancellationToken ct = default);
+
+        Task<(Payment, List<PaymentItem>)> GetPremiumPayment(
+            Guid premiumId,
+            CancellationToken ct);
     }
 }

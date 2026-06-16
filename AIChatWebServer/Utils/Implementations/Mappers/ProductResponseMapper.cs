@@ -8,7 +8,7 @@ namespace AIChatWebServer.Utils.Implementations.Mappers
     {
         public ProductResponse ToResponse(Product model)
         {
-            return new ProductResponse(model.Id, model.Name, model.Price, model.Currency, model.Description);
+            return new ProductResponse(model.Id, model.Name, model.Type, model.Price, model.Currency, model.Description);
         }
     }
 }

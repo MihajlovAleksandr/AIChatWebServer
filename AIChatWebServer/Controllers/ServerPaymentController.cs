@@ -1,9 +1,14 @@
 ﻿using AIChatWebServer.DTO.Request;
 using AIChatWebServer.DTO.Response;
+using AIChatWebServer.Models.Exceptions.Implementations.Payment;
 using AIChatWebServer.Models.Payment;
+using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Implementations;
+using AIChatWebServer.Services.Implementations.Payments;
+using AIChatWebServer.Services.Interfaces.Connections;
 using AIChatWebServer.Services.Interfaces.Payments;
+using AIChatWebServer.Services.Interfaces.Users;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,13 +21,20 @@ namespace AIChatWebServer.Controllers
         IPurchaseService purchaseService,
         IServerValidator serverValidator,
         ICollectionResponseMapper<Product, ProductResponse> productCollectionMapper,
-        IResponseMapper<Product, ProductResponse> productMapper)
+        IResponseMapper<Product, ProductResponse> productMapper,
+        IUserPremiumService userPremiumService,
+        ICollectionResponseMapper<Payment, PaymentInfoResponse> paymentInfoMapper,
+        IResponseMapper<(Payment payment, List<PaymentItem> items), PaymentResponse> paymentMapper)
         : ControllerBase
     {
         private readonly IPurchaseService _purchaseService = purchaseService;
         private readonly IServerValidator _serverValidator = serverValidator;
+        private readonly IUserPremiumService _userPremiumService = userPremiumService;
         private readonly ICollectionResponseMapper<Product, ProductResponse> _productCollectionMapper = productCollectionMapper;
         private readonly IResponseMapper<Product, ProductResponse> _productMapper = productMapper;
+        private readonly ICollectionResponseMapper<Payment, PaymentInfoResponse> _paymentInfoMapper = paymentInfoMapper;
+        private readonly IResponseMapper<(Payment payment, List<PaymentItem> items), PaymentResponse> _paymentMapper = paymentMapper;
+
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> CreatePayment(
@@ -34,6 +46,18 @@ namespace AIChatWebServer.Controllers
                 serverTokenContext.UserId,
                 serverTokenContext.Server,
                 ct);
+
+            if (request.Type == PaymentType.Subscription)
+            {
+                if (request.Items.Count != 1)
+                    throw new InvalidSubscriptionPaymentItemsException(request.Items.Count);
+
+                UserPremium? userPremium =
+                    await _userPremiumService.GetActiveAsync(request.UserId, ct);
+
+                if (userPremium != null && userPremium.IsAutoRenew)
+                    throw new UserAlreadyHasAutoRenewSubscriptionException(request.UserId);
+            }
 
             var result = await _purchaseService.CreatePaymentAsync(
                 request.UserId,
@@ -65,7 +89,7 @@ namespace AIChatWebServer.Controllers
                 userId,
                 ct);
 
-            return Ok(payments);
+            return Ok(_paymentInfoMapper.ToResponse(payments));
         }
 
         [Authorize]
@@ -80,20 +104,8 @@ namespace AIChatWebServer.Controllers
                 serverTokenContext.Server,
                 ct);
 
-            var (payment, items) = await _purchaseService
-                .GetPaymentDetailsAsync(id, ct);
-
-            var response = new PaymentResponse(
-                payment.Id,
-                payment.Amount,
-                payment.Currency,
-                payment.Status,
-                payment.CreatedAt,
-                items.Select(i => new PaymentItemResponse(
-                    _productMapper.ToResponse(i.Product),
-                    i.Quantity)));
-
-            return Ok(response);
+            return Ok(_paymentMapper.ToResponse(await _purchaseService
+                .GetPaymentDetailsAsync(id, ct)));
         }
 
         [Authorize]
@@ -130,7 +142,7 @@ namespace AIChatWebServer.Controllers
                 serverTokenContext.Server,
                 ct);
 
-            await _purchaseService.ConfirmPaymentAsync(id, request.TransactionId, new OneTimePaymentData(), ct);
+            await _purchaseService.ConfirmPaymentAsync(id, request.TransactionId, request.StripeChargeId, request.StripeInvoiceUrl, new OneTimePaymentData(), ct);
 
             return Ok();
         }

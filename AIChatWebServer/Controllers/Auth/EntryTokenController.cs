@@ -1,7 +1,8 @@
 ﻿using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Exceptions.Implementations.Context;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Auth;
+using AIChatWebServer.Services.Interfaces.Connections;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

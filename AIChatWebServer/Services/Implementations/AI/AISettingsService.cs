@@ -1,18 +1,16 @@
-﻿using AIChatWebServer.Integrations.AI;
-using AIChatWebServer.Models.AI;
+﻿using AIChatWebServer.Models.AI;
+using AIChatWebServer.Models.Exceptions.Implementations.AI;
 using AIChatWebServer.Repositories.Interfaces;
 using AIChatWebServer.Services.Interfaces.AI;
+using AIChatWebServer.Services.Interfaces.Users;
 
-namespace AIChatWebServer.Services.Implementations
+namespace AIChatWebServer.Services.Implementations.AI
 {
-    public sealed class AISettingsService : IAISettingsService
+    public sealed class AISettingsService(IAISettingsRepository repository, IUserAiService userAiService, IUserService userService) : IAISettingsService
     {
-        private readonly IAISettingsRepository _repository;
-
-        public AISettingsService(IAISettingsRepository repository)
-        {
-            _repository = repository;
-        }
+        private readonly IAISettingsRepository _repository = repository;
+        private readonly IUserService _userService = userService;
+        private readonly IUserAiService _userAiService = userAiService;
 
         public async Task<AISettingsModel> GetByChatId(
             Guid chatId,
@@ -23,13 +21,19 @@ namespace AIChatWebServer.Services.Implementations
         }
 
         public async Task<AISettingsModel> CreateOrUpdate(
+            Guid userId,
             Guid chatId,
             AIModel model,
             string? customPrompt,
             CancellationToken cancellationToken = default)
         {
             var existing = await _repository.GetByChatId(chatId, cancellationToken);
-
+            if (!await _userService.IsPremium(userId, cancellationToken))
+            {
+                if ((existing == null || existing.Model != model) && model != AIModel.Default)
+                    if (!await _userAiService.ExistsByUserIdAndModelAsync(userId, model, cancellationToken))
+                        throw new AIModelNotAvailableForUserException(userId, model);
+            }
             if (existing is null)
             {
                 return await _repository.Add(
@@ -39,10 +43,11 @@ namespace AIChatWebServer.Services.Implementations
                     cancellationToken);
             }
 
-            if (existing.CustomPrompt != customPrompt)
+            if (existing.CustomPrompt != customPrompt || existing.Model != model)
             {
-                await _repository.UpdatePrompt(
+                await _repository.Update(
                     chatId,
+                    (int)model,
                     customPrompt,
                     cancellationToken);
             }
@@ -56,30 +61,17 @@ namespace AIChatWebServer.Services.Implementations
             );
         }
 
-        public async Task<AISettingsModel> UpdatePrompt(
-            Guid chatId,
-            string? customPrompt,
-            CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyCollection<AIModel>> GetAvibleModels(Guid userId, CancellationToken ct = default)
         {
-            var existing = await _repository.GetByChatId(chatId, cancellationToken);
+            if (await _userService.IsPremium(userId, ct))
+                return Enum.GetValues<AIModel>().Distinct().ToList();
 
-            if (existing is null)
-            {
-                throw new InvalidOperationException("AI settings not found for chat");
-            }
+            var userModels = await _userAiService.GetAllByUserIdAsync(userId, ct);
 
-            await _repository.UpdatePrompt(
-                chatId,
-                customPrompt,
-                cancellationToken);
+            var models = userModels.Select(m => m.Model).ToList();
+            models.Add(AIModel.Default);
 
-            return new AISettingsModel(
-                existing.Id,
-                existing.ChatId,
-                customPrompt,
-                existing.Model,
-                DateTime.UtcNow
-            );
+            return models.Distinct().ToList();
         }
     }
 }

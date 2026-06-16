@@ -1,4 +1,5 @@
 ﻿using AIChatWebServer.Integrations.AI.Interfaces;
+using AIChatWebServer.Models.AI;
 
 namespace AIChatWebServer.Integrations.AI.Implementations
 {

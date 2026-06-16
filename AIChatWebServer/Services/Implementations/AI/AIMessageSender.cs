@@ -1,5 +1,4 @@
-﻿using AIChatWebServer.Integrations.AI;
-using AIChatWebServer.Integrations.AI.DTO;
+﻿using AIChatWebServer.Integrations.AI.DTO;
 using AIChatWebServer.Integrations.AI.Interfaces;
 using AIChatWebServer.Models.AI;
 using AIChatWebServer.Repositories.Interfaces;
@@ -20,9 +19,10 @@ namespace AIChatWebServer.Services.Implementations.AI
             TokenOperation operation,
             string prompt,
             IEnumerable<AIMessage>? messages = null,
-            CancellationToken ct = default)
+            CancellationToken ct = default,
+            bool isSustemPrompt = false)
         {
-            AIMessageResponse response = await SendMessage(model, prompt, messages);
+            AIMessageResponse response = await SendMessage(model, prompt, messages, isSustemPrompt);
             await _aiMessageRepository.UseTokens(chatId, response.TotalTokensUsed, model, operation, ct);
             return response.Answer;
         }
@@ -30,7 +30,8 @@ namespace AIChatWebServer.Services.Implementations.AI
         private async Task<AIMessageResponse> SendMessage(
             AIModel model,
             string prompt,
-            IEnumerable<AIMessage>? messages = null)
+            IEnumerable<AIMessage>? messages = null,
+            bool isSystemPrompt = false)
         {
             messages ??= [];
 
@@ -40,12 +41,13 @@ namespace AIChatWebServer.Services.Implementations.AI
 
             messageList.Insert(0, new AIMessageRequest(prompt, AIMessageRole.System.ToString()));
 
-            return await SendMessageWithRetryAsync(model, messageList);
+            return await SendMessageWithRetryAsync(model, messageList, isSystemPrompt);
         }
 
         private async Task<AIMessageResponse> SendMessageWithRetryAsync(
             AIModel model,
-            IEnumerable<AIMessageRequest> messages)
+            IEnumerable<AIMessageRequest> messages,
+            bool isSystemPrompt)
         {
             string modelName;
             IAIController controller = _aIControllerFactory.Create(model, out modelName);
@@ -54,7 +56,7 @@ namespace AIChatWebServer.Services.Implementations.AI
 
             do
             {
-                response = await controller.SendMessageAsync(messages, modelName);
+                response = await controller.SendMessageAsync(messages, modelName, isSystemPrompt);
             }
             while (response == null);
 

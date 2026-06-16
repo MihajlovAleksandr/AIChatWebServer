@@ -2,8 +2,9 @@
 using AIChatWebServer.Hubs.Interfaces;
 using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Sync;
-using AIChatWebServer.Services.Interfaces;
 using AIChatWebServer.Services.Interfaces.Chats;
+using AIChatWebServer.Services.Interfaces.Connections;
+using AIChatWebServer.Services.Interfaces.Utils;
 using AIChatWebServer.Utils.Interfaces.Mapper;
 using ConnectionInfo = AIChatWebServer.Models.Connection.ConnectionInfo;
 

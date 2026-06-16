@@ -1,9 +1,10 @@
-﻿using AIChatWebServer.Models.Chats;
+﻿using AIChatWebServer.Contracts.UnitOfWork.Interfaces;
+using AIChatWebServer.Models.Chats;
 using AIChatWebServer.Models.Chats.Matchmaking;
 
 namespace AIChatWebServer.Repositories.Interfaces
 {
-    public interface IMatchmakingRepository : ITransactionRepository<IMatchmakingRepository>
+    public interface IMatchmakingRepository : ITransactionalScope<IMatchmakingRepository>
     {
         Task<Guid> EnqueueAsync(
             Guid userId,

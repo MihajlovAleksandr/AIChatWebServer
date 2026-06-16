@@ -1,6 +1,7 @@
 ﻿using AIChatWebServer.DTO.Request;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Connections;
+using AIChatWebServer.Services.Interfaces.Files;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

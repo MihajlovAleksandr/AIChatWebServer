@@ -4,32 +4,46 @@ using AIChatWebServer.Repositories.Constants;
 using AIChatWebServer.Repositories.Interfaces;
 using Npgsql;
 using NpgsqlTypes;
+using System.Data;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class GroupChatSearchRepository
         : BaseRepository, IGroupChatSearchRepository
     {
+        private readonly ILogger<GroupChatSearchRepository> _logger;
+        private readonly IConfiguration _configuration;
         private readonly NpgsqlConnection? _conn;
         private readonly NpgsqlTransaction? _tx;
+        private readonly bool _isExternalConnection;
 
-        public GroupChatSearchRepository()
+        public GroupChatSearchRepository(
+            IConfiguration configuration,
+            ILogger<GroupChatSearchRepository> logger) : base(configuration)
         {
+            _configuration = configuration;
+            _logger = logger;
+            _isExternalConnection = false;
         }
 
         private GroupChatSearchRepository(
+            IConfiguration configuration,
+            ILogger<GroupChatSearchRepository> logger,
             NpgsqlConnection conn,
-            NpgsqlTransaction tx)
+            NpgsqlTransaction tx) : base(configuration)
         {
+            _configuration = configuration;
+            _logger = logger;
             _conn = conn;
             _tx = tx;
+            _isExternalConnection = true;
         }
 
         public IGroupChatSearchRepository WithTransaction(
             NpgsqlConnection conn,
             NpgsqlTransaction tx)
         {
-            return new GroupChatSearchRepository(conn, tx);
+            return new GroupChatSearchRepository(_configuration, _logger, conn, tx);
         }
 
         public async Task<Guid> EnqueueAsync(
@@ -40,41 +54,75 @@ namespace AIChatWebServer.Repositories.Implementations
             CancellationToken ct = default)
         {
             var id = Guid.NewGuid();
+            NpgsqlConnection? connection = null;
+            NpgsqlTransaction? transaction = null;
+            bool ownsConnection = false;
+            bool ownsTransaction = false;
 
-            var useExternalConnection = _conn != null;
+            try
+            {
+                if (_isExternalConnection)
+                {
+                    connection = _conn;
+                    transaction = _tx;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    transaction = await connection.BeginTransactionAsync(ct);
+                    ownsConnection = true;
+                    ownsTransaction = true;
+                }
 
-            await using var conn = useExternalConnection
-                ? null
-                : await GetConnectionAsync(ct);
-
-            var actualConn = _conn ?? conn!;
-
-            await using var cmd =
-                new NpgsqlCommand(
+                await using var cmd = new NpgsqlCommand(
                     GroupChatSearchQueries.Enqueue,
-                    actualConn,
-                    _tx);
+                    connection,
+                    transaction);
 
-            cmd.Parameters.AddWithValue("@id", id);
-            cmd.Parameters.AddWithValue("@chatId", chatId);
-            cmd.Parameters.AddWithValue("@userId", userId);
-            cmd.Parameters.AddWithValue("@predicate", matchPredicate);
-            cmd.Parameters.AddWithValue("@slots", slots);
+                cmd.Parameters.AddWithValue("@id", id);
+                cmd.Parameters.AddWithValue("@chatId", chatId);
+                cmd.Parameters.AddWithValue("@userId", userId);
+                cmd.Parameters.AddWithValue("@predicate", matchPredicate);
+                cmd.Parameters.AddWithValue("@slots", slots);
 
-            await cmd.ExecuteNonQueryAsync(ct);
+                await cmd.ExecuteNonQueryAsync(ct);
 
-            return id;
+                if (ownsTransaction && transaction != null)
+                {
+                    await transaction.CommitAsync(ct);
+                }
+
+                return id;
+            }
+            catch (Exception ex)
+            {
+                if (ownsTransaction && transaction != null)
+                {
+                    await transaction.RollbackAsync(ct);
+                }
+
+                _logger.LogError(ex,
+                    "Failed to enqueue group chat search for ChatId={ChatId}, UserId={UserId}",
+                    chatId, userId);
+                throw;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
         }
 
         public async Task<GroupChatSearchEntry?> LockEntryAsync(
             Guid id,
             CancellationToken ct = default)
         {
-            var list =
-                await ReadAsync(
-                    GroupChatSearchQueries.LockEntry,
-                    ct,
-                    ("@id", id));
+            var list = await ReadAsync(
+                GroupChatSearchQueries.LockEntry,
+                ct,
+                ("@id", id));
 
             return list.FirstOrDefault();
         }
@@ -103,21 +151,22 @@ namespace AIChatWebServer.Repositories.Implementations
 
         public Task CancelAsync(
             Guid id,
-            CancellationToken ct = default) =>
-            ExecuteAsync(
+            CancellationToken ct = default)
+        {
+            return ExecuteAsync(
                 GroupChatSearchQueries.Cancel,
                 ct,
                 ("@id", id));
+        }
 
         public async Task<GroupChatSearchEntry?> GetByUserAsync(
             Guid userId,
             CancellationToken ct = default)
         {
-            var list =
-                await ReadAsync(
-                    GroupChatSearchQueries.GetByUser,
-                    ct,
-                    ("@userId", userId));
+            var list = await ReadAsync(
+                GroupChatSearchQueries.GetByUser,
+                ct,
+                ("@userId", userId));
 
             return list.FirstOrDefault();
         }
@@ -127,56 +176,47 @@ namespace AIChatWebServer.Repositories.Implementations
             CancellationToken ct,
             params (string, object)[] parameters)
         {
-            var list =
-                new List<GroupChatSearchEntry>();
+            NpgsqlConnection? connection = null;
+            bool ownsConnection = false;
 
-            if (_conn != null)
+            try
             {
-                await using var cmd =
-                    new NpgsqlCommand(sql, _conn, _tx);
-
-                foreach (var (n, v) in parameters)
+                if (_isExternalConnection)
                 {
-                    if (v is NpgsqlParameter p)
-                        cmd.Parameters.Add(p);
-                    else
-                        cmd.Parameters.AddWithValue(
-                            n,
-                            v ?? DBNull.Value);
+                    connection = _conn;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    ownsConnection = true;
                 }
 
-                await using var r =
-                    await cmd.ExecuteReaderAsync(ct);
+                await using var cmd = new NpgsqlCommand(sql, connection, _tx);
 
-                while (await r.ReadAsync(ct))
-                    list.Add(Map(r));
+                foreach (var (name, value) in parameters)
+                {
+                    if (value is NpgsqlParameter p)
+                        cmd.Parameters.Add(p);
+                    else
+                        cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+                var list = new List<GroupChatSearchEntry>();
+
+                while (await reader.ReadAsync(ct))
+                    list.Add(Map(reader));
 
                 return list;
             }
-
-            await using var conn =
-                await GetConnectionAsync(ct);
-
-            await using var cmd2 =
-                new NpgsqlCommand(sql, conn);
-
-            foreach (var (n, v) in parameters)
+            finally
             {
-                if (v is NpgsqlParameter p)
-                    cmd2.Parameters.Add(p);
-                else
-                    cmd2.Parameters.AddWithValue(
-                        n,
-                        v ?? DBNull.Value);
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
             }
-
-            await using var r2 =
-                await cmd2.ExecuteReaderAsync(ct);
-
-            while (await r2.ReadAsync(ct))
-                list.Add(Map(r2));
-
-            return list;
         }
 
         private async Task ExecuteAsync(
@@ -184,55 +224,72 @@ namespace AIChatWebServer.Repositories.Implementations
             CancellationToken ct,
             params (string, object)[] parameters)
         {
-            if (_conn != null)
-            {
-                await using var cmd =
-                    new NpgsqlCommand(sql, _conn, _tx);
+            NpgsqlConnection? connection = null;
+            NpgsqlTransaction? transaction = null;
+            bool ownsConnection = false;
+            bool ownsTransaction = false;
 
-                foreach (var (n, v) in parameters)
+            try
+            {
+                if (_isExternalConnection)
                 {
-                    if (v is NpgsqlParameter p)
+                    connection = _conn;
+                    transaction = _tx;
+                }
+                else
+                {
+                    connection = await GetConnectionAsync(ct);
+                    transaction = await connection.BeginTransactionAsync(ct);
+                    ownsConnection = true;
+                    ownsTransaction = true;
+                }
+
+                await using var cmd = new NpgsqlCommand(sql, connection, transaction);
+
+                foreach (var (name, value) in parameters)
+                {
+                    if (value is NpgsqlParameter p)
                         cmd.Parameters.Add(p);
                     else
-                        cmd.Parameters.AddWithValue(
-                            n,
-                            v ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
                 }
 
                 await cmd.ExecuteNonQueryAsync(ct);
-                return;
+
+                if (ownsTransaction && transaction != null)
+                {
+                    await transaction.CommitAsync(ct);
+                }
             }
-
-            await using var conn =
-                await GetConnectionAsync(ct);
-
-            await using var cmd2 =
-                new NpgsqlCommand(sql, conn);
-
-            foreach (var (n, v) in parameters)
+            catch (Exception ex)
             {
-                if (v is NpgsqlParameter p)
-                    cmd2.Parameters.Add(p);
-                else
-                    cmd2.Parameters.AddWithValue(
-                        n,
-                        v ?? DBNull.Value);
-            }
+                if (ownsTransaction && transaction != null)
+                {
+                    await transaction.RollbackAsync(ct);
+                }
 
-            await cmd2.ExecuteNonQueryAsync(ct);
+                _logger.LogError(ex, "Failed to execute query: {Sql}", sql);
+                throw;
+            }
+            finally
+            {
+                if (ownsConnection && connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
         }
 
-        private static GroupChatSearchEntry Map(
-            NpgsqlDataReader r)
+        private static GroupChatSearchEntry Map(NpgsqlDataReader reader)
         {
             return new GroupChatSearchEntry(
-                r.GetGuid(r.GetOrdinal("id")),
-                r.GetGuid(r.GetOrdinal("chat_id")),
-                r.GetGuid(r.GetOrdinal("user_id")),
-                r.GetString(r.GetOrdinal("match_predicate")),
-                r.GetInt32(r.GetOrdinal("slots")),
-                (ChatMatchStatus)r.GetInt16(r.GetOrdinal("status")),
-                r.GetDateTime(r.GetOrdinal("created_at"))
+                reader.GetGuid(reader.GetOrdinal("id")),
+                reader.GetGuid(reader.GetOrdinal("chat_id")),
+                reader.GetGuid(reader.GetOrdinal("user_id")),
+                reader.GetString(reader.GetOrdinal("match_predicate")),
+                reader.GetInt32(reader.GetOrdinal("slots")),
+                (ChatMatchStatus)reader.GetInt16(reader.GetOrdinal("status")),
+                reader.GetDateTime(reader.GetOrdinal("created_at"))
             );
         }
     }

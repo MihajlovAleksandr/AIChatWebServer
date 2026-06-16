@@ -6,12 +6,41 @@ using System.Data;
 
 namespace AIChatWebServer.Repositories.Implementations;
 
-public sealed class ChatGameRepository(
-    ILogger<ChatGameRepository> logger)
+public sealed class ChatGameRepository
     : BaseRepository, IChatGameRepository
 {
-    private readonly ILogger<ChatGameRepository> _logger =
-        logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ILogger<ChatGameRepository> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly NpgsqlConnection? _conn;
+    private readonly NpgsqlTransaction? _tx;
+    private readonly bool _isExternalConnection;
+
+    public ChatGameRepository(
+        IConfiguration configuration,
+        ILogger<ChatGameRepository> logger) : base(configuration)
+    {
+        _configuration = configuration;
+        _logger = logger;
+        _isExternalConnection = false;
+    }
+
+    private ChatGameRepository(
+        IConfiguration configuration,
+        ILogger<ChatGameRepository> logger,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx) : base(configuration) 
+    {
+        _configuration = configuration;
+        _logger = logger;
+        _conn = conn;
+        _tx = tx;
+        _isExternalConnection = true;
+    }
+
+    public IChatGameRepository WithTransaction(NpgsqlConnection conn, NpgsqlTransaction tx)
+    {
+        return new ChatGameRepository(_configuration, _logger, conn, tx);
+    }
 
     public async Task<Guid> CreateAsync(
         Guid chatId,
@@ -20,11 +49,26 @@ public sealed class ChatGameRepository(
         AiRole opponentAiRole,
         CancellationToken ct = default)
     {
-        await using var connection = await GetConnectionAsync(ct);
-        await using var transaction = await connection.BeginTransactionAsync(ct);
+        NpgsqlConnection? connection = null;
+        NpgsqlTransaction? transaction = null;
+        bool ownsConnection = false;
+        bool ownsTransaction = false;
 
         try
         {
+            if (_isExternalConnection)
+            {
+                connection = _conn;
+                transaction = _tx;
+            }
+            else
+            {
+                connection = await GetConnectionAsync(ct);
+                transaction = await connection.BeginTransactionAsync(ct);
+                ownsConnection = true;
+                ownsTransaction = true;
+            }
+
             await using var createCmd = new NpgsqlCommand(
                 ChatGameQueries.CreateSession,
                 connection,
@@ -60,16 +104,29 @@ public sealed class ChatGameRepository(
                 await cmd.ExecuteNonQueryAsync(ct);
             }
 
-            await transaction.CommitAsync(ct);
+            if (ownsTransaction && transaction != null)
+            {
+                await transaction.CommitAsync(ct);
+            }
 
             return sessionId;
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(ct);
+            if (ownsTransaction && transaction != null)
+            {
+                await transaction.RollbackAsync(ct);
+            }
 
             _logger.LogError(ex, "Failed to create game session for ChatId={ChatId}", chatId);
             throw;
+        }
+        finally
+        {
+            if (ownsConnection && connection != null)
+            {
+                await connection.DisposeAsync();
+            }
         }
     }
 
@@ -98,33 +155,77 @@ public sealed class ChatGameRepository(
         AiRole guessedAiRole,
         CancellationToken ct = default)
     {
-        await using var connection = await GetConnectionAsync(ct);
+        NpgsqlConnection? connection = null;
+        bool ownsConnection = false;
 
-        await using var cmd = new NpgsqlCommand(
-            ChatGameQueries.SetResult,
-            connection);
+        try
+        {
+            if (_isExternalConnection)
+            {
+                connection = _conn;
+            }
+            else
+            {
+                connection = await GetConnectionAsync(ct);
+                ownsConnection = true;
+            }
 
-        cmd.Parameters.AddWithValue("@SessionId", sessionId);
-        cmd.Parameters.AddWithValue("@GuessedAiRole", ToDb(guessedAiRole));
+            await using var cmd = new NpgsqlCommand(
+                ChatGameQueries.SetResult,
+                connection,
+                _tx);
 
-        await cmd.ExecuteNonQueryAsync(ct);
+            cmd.Parameters.AddWithValue("@SessionId", sessionId);
+            cmd.Parameters.AddWithValue("@GuessedAiRole", ToDb(guessedAiRole));
+
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+        finally
+        {
+            if (ownsConnection && connection != null)
+            {
+                await connection.DisposeAsync();
+            }
+        }
     }
 
     public async Task<bool?> GetResultAsync(
         Guid sessionId,
         CancellationToken ct = default)
     {
-        await using var connection = await GetConnectionAsync(ct);
+        NpgsqlConnection? connection = null;
+        bool ownsConnection = false;
 
-        await using var cmd = new NpgsqlCommand(
-            ChatGameQueries.GetResult,
-            connection);
+        try
+        {
+            if (_isExternalConnection)
+            {
+                connection = _conn;
+            }
+            else
+            {
+                connection = await GetConnectionAsync(ct);
+                ownsConnection = true;
+            }
 
-        cmd.Parameters.AddWithValue("@SessionId", sessionId);
+            await using var cmd = new NpgsqlCommand(
+                ChatGameQueries.GetResult,
+                connection,
+                _tx);
 
-        var result = await cmd.ExecuteScalarAsync(ct);
+            cmd.Parameters.AddWithValue("@SessionId", sessionId);
 
-        return result as bool?;
+            var result = await cmd.ExecuteScalarAsync(ct);
+
+            return result as bool?;
+        }
+        finally
+        {
+            if (ownsConnection && connection != null)
+            {
+                await connection.DisposeAsync();
+            }
+        }
     }
 
     private async Task<ChatGameSession?> GetInternalAsync(
@@ -132,43 +233,64 @@ public sealed class ChatGameRepository(
         (string, object) parameter,
         CancellationToken ct)
     {
-        await using var connection = await GetConnectionAsync(ct);
+        NpgsqlConnection? connection = null;
+        bool ownsConnection = false;
 
-        await using var cmd = new NpgsqlCommand(query, connection);
-        cmd.Parameters.AddWithValue(parameter.Item1, parameter.Item2);
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-
-        if (!await reader.ReadAsync(ct))
-            return null;
-
-        var sessionId = reader.GetGuid("session_id");
-        var chatId = reader.GetGuid("chat_id");
-
-        var guessed = reader.IsDBNull("guessed_ai_role")
-            ? (AiRole?)null
-            : FromDbAiRole(reader.GetString("guessed_ai_role"));
-
-        var participants = new List<ChatGameParticipant>();
-
-        do
+        try
         {
-            participants.Add(new ChatGameParticipant(
-                reader.GetGuid("participant_id"),
-                reader.GetGuid("user_chat_id"),
-                FromDbGameRole(reader.GetString("game_role")),
-                reader.IsDBNull("ai_role")
-                    ? null
-                    : FromDbAiRole(reader.GetString("ai_role"))
-            ));
-        }
-        while (await reader.ReadAsync(ct));
+            if (_isExternalConnection)
+            {
+                connection = _conn;
+            }
+            else
+            {
+                connection = await GetConnectionAsync(ct);
+                ownsConnection = true;
+            }
 
-        return new ChatGameSession(
-            sessionId,
-            chatId,
-            guessed,
-            participants);
+            await using var cmd = new NpgsqlCommand(query, connection, _tx);
+            cmd.Parameters.AddWithValue(parameter.Item1, parameter.Item2);
+
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+            if (!await reader.ReadAsync(ct))
+                return null;
+
+            var sessionId = reader.GetGuid("session_id");
+            var chatId = reader.GetGuid("chat_id");
+
+            var guessed = reader.IsDBNull("guessed_ai_role")
+                ? (AiRole?)null
+                : FromDbAiRole(reader.GetString("guessed_ai_role"));
+
+            var participants = new List<ChatGameParticipant>();
+
+            do
+            {
+                participants.Add(new ChatGameParticipant(
+                    reader.GetGuid("participant_id"),
+                    reader.GetGuid("user_chat_id"),
+                    FromDbGameRole(reader.GetString("game_role")),
+                    reader.IsDBNull("ai_role")
+                        ? null
+                        : FromDbAiRole(reader.GetString("ai_role"))
+                ));
+            }
+            while (await reader.ReadAsync(ct));
+
+            return new ChatGameSession(
+                sessionId,
+                chatId,
+                guessed,
+                participants);
+        }
+        finally
+        {
+            if (ownsConnection && connection != null)
+            {
+                await connection.DisposeAsync();
+            }
+        }
     }
 
     private static string ToDb(GameRole role) =>

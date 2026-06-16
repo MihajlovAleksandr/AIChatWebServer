@@ -6,8 +6,7 @@ using System.Data;
 namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class ConnectionRepository(
-        ILogger<ConnectionRepository> logger) :
-        BaseRepository,
+        ILogger<ConnectionRepository> logger, IConfiguration configuration) : BaseRepository(configuration),
         IConnectionRepository
     {
         private readonly ILogger<ConnectionRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));

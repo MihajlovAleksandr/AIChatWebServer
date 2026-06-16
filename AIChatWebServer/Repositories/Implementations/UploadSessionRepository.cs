@@ -6,7 +6,7 @@ using System.Data;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class UploadSessionRepository : BaseRepository, IUploadSessionRepository
+    public sealed class UploadSessionRepository(IConfiguration configuration) : BaseRepository(configuration), IUploadSessionRepository
     {
         public async Task<Guid> CreateSessionWithFilesAsync(
             Guid userId,

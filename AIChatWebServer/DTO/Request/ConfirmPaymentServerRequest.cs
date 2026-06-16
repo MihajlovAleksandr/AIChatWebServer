@@ -6,5 +6,9 @@ namespace AIChatWebServer.DTO.Request
     {
         [JsonPropertyName("transactionId")]
         public required string TransactionId { get; init; }
+        [JsonPropertyName("stripeInvoiceUrl")]
+        public string? StripeInvoiceUrl { get; init; } = null;
+        [JsonPropertyName("stripeChargeId")]
+        public string? StripeChargeId { get; init; } = null;
     }
 }

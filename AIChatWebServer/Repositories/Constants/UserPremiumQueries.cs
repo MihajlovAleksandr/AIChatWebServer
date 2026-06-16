@@ -68,5 +68,12 @@
             WHERE subscription_id = @subscription_id
             ORDER BY end_at DESC
             LIMIT 1;";
+
+        public const string GetFirstBySubscriptionId = @"
+            SELECT *
+            FROM users_premium
+            WHERE subscription_id = @subscription_id
+            ORDER BY start_at ASC
+            LIMIT 1;";
     }
 }

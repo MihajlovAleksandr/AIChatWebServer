@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using AIChatWebServer.Models.Payment;
+using System.Text.Json.Serialization;
 
 namespace AIChatWebServer.DTO.Request
 {
@@ -6,6 +7,9 @@ namespace AIChatWebServer.DTO.Request
     {
         [JsonPropertyName("userId")]
         public required Guid UserId { get; init; }
+
+        [JsonPropertyName("type")]
+        public PaymentType Type { get; init; } = PaymentType.Subscription;
 
         [JsonPropertyName("items")]
         public required List<PaymentItemRequest> Items { get; init; }

@@ -4,7 +4,8 @@ using AIChatWebServer.Models.Exceptions.Implementations.Context;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Consts;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
+using AIChatWebServer.Services.Interfaces.Auth;
+using AIChatWebServer.Services.Interfaces.Connections;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChatWebServer.Controllers.Auth

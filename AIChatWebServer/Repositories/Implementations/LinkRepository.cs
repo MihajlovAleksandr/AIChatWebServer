@@ -6,7 +6,7 @@ using System.Data;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class LinkRepository : BaseRepository, ILinkRepository
+    public sealed class LinkRepository(IConfiguration configuration) : BaseRepository(configuration), ILinkRepository
     {
         public async Task<Guid> CreateAsync(
             string tokenHash,

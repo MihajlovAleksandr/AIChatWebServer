@@ -13,6 +13,11 @@ namespace AIChatWebServer.Hubs.Implementations
             await _messageDispatcher.SendToUserAsync(userId, excluded, nameof(ChatCreated), response, CancellationToken.None);
         }
 
+        public async Task Typing(Guid chatId, Guid[] connectionIds, UserTypingResponse response)
+        {
+            await _messageDispatcher.SendToChatAsync(chatId, connectionIds, nameof(Typing), response, CancellationToken.None);
+        }
+
         public async Task ChatDeleted(Guid userId, Guid excludedConnectionId, ChatDeletedResponse response)
         {
             await _messageDispatcher.SendToUserAsync(userId, [excludedConnectionId], nameof(ChatDeleted), response, CancellationToken.None);

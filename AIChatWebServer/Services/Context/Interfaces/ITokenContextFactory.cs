@@ -1,9 +1,7 @@
-﻿using AIChatWebServer.Services.Context.Interfaces;
-
-namespace AIChatWebServer.Services.Tokens.Interfaces
+﻿namespace AIChatWebServer.Services.Context.Interfaces
 {
     public interface ITokenContextFactory
     {
-        ITokenContext Create();
+        ITokenContext Create(IUserContextAccessor accessor);
     }
 }

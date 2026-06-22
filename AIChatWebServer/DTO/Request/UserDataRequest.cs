@@ -3,12 +3,14 @@ using System.Text.Json.Serialization;
 
 namespace AIChatWebServer.DTO.Request
 {
-    public record UserDataRequest
-    (
-        [property: JsonPropertyName("gender")]
-        [property: JsonConverter(typeof(JsonStringEnumConverter))]
-        Gender Gender,
-        [property: JsonPropertyName("age")] int Age,
-        [property: JsonPropertyName("name")] string Name
-    );
+    public sealed record UserDataRequest
+    {
+        [JsonPropertyName("gender")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public required Gender Gender { get; init; }
+        [JsonPropertyName("age")]
+        public required int Age { get; init; }
+        [JsonPropertyName("name")]
+        public required string Name { get; init; }
+    }
 }

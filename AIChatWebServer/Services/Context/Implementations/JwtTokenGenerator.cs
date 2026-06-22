@@ -1,4 +1,4 @@
-﻿using AIChatWebServer.Services.Tokens.Interfaces;
+﻿using AIChatWebServer.Services.Context.Interfaces;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

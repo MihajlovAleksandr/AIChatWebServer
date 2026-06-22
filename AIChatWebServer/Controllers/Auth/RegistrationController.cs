@@ -1,13 +1,13 @@
 ﻿using AIChatWebServer.DTO.Request;
 using AIChatWebServer.DTO.Response;
-using AIChatWebServer.Models.Exceptions;
+using AIChatWebServer.Models.Exceptions.Implementations.Auth.Register;
+using AIChatWebServer.Models.Exceptions.Implementations.Context;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Implementations;
-using AIChatWebServer.Services.Interfaces;
-using AIChatWebServer.Services.Tokens.Interfaces;
-using AIChatWebServer.Utils.Errors;
+using AIChatWebServer.Services.Interfaces.Auth;
+using AIChatWebServer.Services.Interfaces.Connections;
 using AIChatWebServer.Utils.Interfaces;
+using AIChatWebServer.Utils.Interfaces.Mapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChatWebServer.Controllers.Auth
@@ -36,232 +36,133 @@ namespace AIChatWebServer.Controllers.Auth
 
         [HttpPost]
         public async Task<IActionResult> Register(
-            RegisterRequest request,
+            [FromBody] RegisterRequest request,
             [FromServices] IClientContext context,
             CancellationToken ct)
         {
-            if (request == null)
-                return BadRequest(ApiError.Create(CommonErrors.RequestBodyEmpty));
-
             if (string.IsNullOrWhiteSpace(context.Device))
-                return BadRequest(ApiError.Create(CommonErrors.DeviceMissing));
+                throw new DeviceMissingException();
 
             if (string.IsNullOrWhiteSpace(context.LanguageCode))
-                return BadRequest(ApiError.Create(CommonErrors.LanguageMissing));
+                throw new LanguageMissingException();
 
             if (string.IsNullOrWhiteSpace(context.IpAddress))
-                return BadRequest(ApiError.Create(CommonErrors.IpMissing));
+                throw new IpMissingException();
 
-            if (string.IsNullOrWhiteSpace(request.Identifier))
-                return BadRequest(ApiError.Create(LoginErrors.IdentifierRequired));
-
-            if (string.IsNullOrWhiteSpace(request.Secret))
-                return BadRequest(ApiError.Create(LoginErrors.SecretRequired));
-
-            if (string.IsNullOrWhiteSpace(request.IdentityProviderCode))
-                return BadRequest(ApiError.Create(LoginErrors.ProviderRequired));
-
-            try
-            {
-                Guid userId =
-                    await _registrationService.RegisterAsync(
-                        request.Identifier.Trim(),
-                        request.Secret,
-                        request.IdentityProviderCode.Trim(),
-                        _regionGetter.GetCountryCode(context.IpAddress),
-                        context.LanguageCode,
-                        ct);
-
-                Guid connectionId =
-                    await _connectionService.AddConnectionAsync(
-                        context.Device,
-                        userId,
-                        ct);
-
-                await _emailVerificationService.GenerateAsync(
+            Guid userId =
+                await _registrationService.RegisterAsync(
                     request.Identifier.Trim(),
-                    userId,
+                    request.Secret,
+                    request.IdentityProviderCode.Trim(),
+                    _regionGetter.GetCountryCode(context.IpAddress),
                     context.LanguageCode,
                     ct);
 
-                return NextStep(
+            Guid connectionId =
+                await _connectionService.AddConnectionAsync(
+                    context.Device,
                     userId,
-                    connectionId,
-                    RegistrationState.Created);
-            }
-            catch (UserAlreadyExistsException)
-            {
-                return Conflict(ApiError.Create(RegisterErrors.UserAlreadyExists));
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiError.Create(CommonErrors.InternalError));
-            }
+                    ct);
+
+            await _emailVerificationService.GenerateAsync(
+                request.Identifier.Trim(),
+                connectionId,
+                userId,
+                context.LanguageCode,
+                ct);
+
+            return NextStep(
+                userId,
+                connectionId,
+                RegistrationState.Created);
         }
 
         [HttpPost("verify")]
         public async Task<IActionResult> VerifyEmail(
-            VerificationCodeRequest request,
+            [FromBody] VerificationCodeRequest request,
             [FromServices] IRegistrationTokenContext context,
             CancellationToken ct)
         {
-            if (request == null)
-                return BadRequest(ApiError.Create(CommonErrors.RequestBodyEmpty));
+            await ValidateStepAsync(context, RegistrationState.Created, ct);
 
-            if (!context.UserId.HasValue || !context.ConnectionId.HasValue)
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidContext));
+            await _emailVerificationService.VerifyAsync(
+                context.UserId,
+                request.Code,
+                ct);
 
-            if (!await ValidateStepAsync(context,RegistrationState.Created, ct))
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidStep));
+            await _registrationService.MarkEmailVerifiedAsync(
+                context.UserId,
+                ct);
 
-            if (string.IsNullOrWhiteSpace(request.Code))
-                return BadRequest(ApiError.Create(RegisterErrors.VerificationCodeRequired));
-
-            try
-            {
-                await _emailVerificationService.VerifyAsync(
-                    context.UserId.Value,
-                    request.Code,
-                    ct);
-
-                await _registrationService.MarkEmailVerifiedAsync(
-                    context.UserId.Value,
-                    ct);
-
-                return NextStep(
-                    context.UserId.Value,
-                    context.ConnectionId.Value,
-                    RegistrationState.EmailVerified);
-            }
-            catch (InvalidVerificationCodeException)
-            {
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidCode));
-            }
-            catch (VerificationCodeExpiredException)
-            {
-                return BadRequest(ApiError.Create(RegisterErrors.CodeExpired));
-            }
-            catch (VerificationCodeAttemptsExceededException)
-            {
-                return Forbid();
-            }
-            catch (VerificationCodeNotFoundException)
-            {
-                return NotFound(ApiError.Create(RegisterErrors.CodeNotFound));
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiError.Create(CommonErrors.InternalError));
-            }
+            return NextStep(
+                context.UserId,
+                context.ConnectionId,
+                RegistrationState.EmailVerified);
         }
 
         [HttpPost("userdata")]
         public async Task<IActionResult> AddUserData(
-            UserDataRequest request,
+            [FromBody] UserDataRequest request,
             [FromServices] IRegistrationTokenContext context,
             CancellationToken ct)
         {
-            if (request == null)
-                return BadRequest(ApiError.Create(CommonErrors.RequestBodyEmpty));
+            await ValidateStepAsync(context, RegistrationState.EmailVerified, ct);
 
-            if (!context.UserId.HasValue || !context.ConnectionId.HasValue)
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidContext));
+            UserData model =
+                _userDataMapper.ToModel(request);
 
-            if (!await ValidateStepAsync(context, RegistrationState.EmailVerified, ct))
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidStep));
+            await _registrationService.AddUserDataAsync(
+                context.UserId,
+                model,
+                ct);
 
-            try
-            {
-                UserData model =
-                    _userDataMapper.ToModel(request);
-
-                await _registrationService.AddUserDataAsync(
-                    context.UserId.Value,
-                    model,
-                    ct);
-
-                return NextStep(
-                    context.UserId.Value,
-                    context.ConnectionId.Value,
-                    RegistrationState.UserDataCompleted);
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiError.Create(RegisterErrors.UserDataSaveFailed));
-            }
+            return NextStep(
+                context.UserId,
+                context.ConnectionId,
+                RegistrationState.UserDataCompleted);
         }
 
         [HttpPost("preference")]
         public async Task<IActionResult> AddPreference(
-            PreferenceRequest request,
+            [FromBody] PreferenceRequest request,
             [FromServices] IRegistrationTokenContext context,
             CancellationToken ct)
         {
-            if (request == null)
-                return BadRequest(ApiError.Create(CommonErrors.RequestBodyEmpty));
+            await ValidateStepAsync(context, RegistrationState.UserDataCompleted, ct);
 
-            if (!context.UserId.HasValue || !context.ConnectionId.HasValue)
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidContext));
+            Preference pref =
+                _preferenceMapper.ToModel(request);
 
-            if (!await ValidateStepAsync(context, RegistrationState.UserDataCompleted, ct))
-                return Unauthorized(ApiError.Create(RegisterErrors.InvalidStep));
+            await _registrationService.AddPreferenceAsync(
+                context.UserId,
+                pref,
+                ct);
 
-            try
-            {
-                Preference pref =
-                    _preferenceMapper.ToModel(request);
+            await _registrationService.CompleteRegistrationAsync(
+                context.UserId,
+                ct);
 
-                await _registrationService.AddPreferenceAsync(
-                    context.UserId.Value,
-                    pref,
-                    ct);
-
-                await _registrationService.CompleteRegistrationAsync(
-                    context.UserId.Value,
-                    ct);
-
-                return Ok(
-                    _workTokenFactory.Create(
-                        context.UserId.Value,
-                        context.ConnectionId.Value));
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiError.Create(RegisterErrors.PreferenceSaveFailed));
-            }
+            return Ok(
+                _workTokenFactory.Create(
+                    context.UserId,
+                    context.ConnectionId));
         }
 
-        private async Task<bool> ValidateStepAsync(
+        private async Task ValidateStepAsync(
             IRegistrationTokenContext context,
             RegistrationState expected,
             CancellationToken ct)
         {
             RegistrationState realState =
                 await _registrationService.GetRegistrationStateAsync(
-                    context.UserId!.Value,
+                    context.UserId,
                     ct);
 
-            if (realState != context.RegistrationState)
-                return false;
-
-            if (context.RegistrationState != expected)
-                return false;
-
-            if (realState != expected)
-                return false;
-
-            return true;
+            if (realState != context.RegistrationState
+                || context.RegistrationState != expected 
+                || realState != expected)
+                    throw new InvalidRegisterStepException(context.RegistrationState, expected, realState);
         }
-
-
 
         private IActionResult NextStep(
             Guid userId,

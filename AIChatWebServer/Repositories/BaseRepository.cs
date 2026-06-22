@@ -5,15 +5,14 @@ namespace AIChatWebServer.Repositories
     public abstract class BaseRepository
     {
         private readonly string _connectionString;
-        protected BaseRepository()
+
+        protected BaseRepository(IConfiguration configuration)
         {
-            _connectionString =
-                System.Configuration.ConfigurationManager
-                    .ConnectionStrings["MainDatabase"]
-                    ?.ConnectionString
+            _connectionString = configuration.GetConnectionString("MainDatabase")
                 ?? throw new InvalidOperationException(
-                    "Connection string 'MainDatabase' not found in app.config");
+                    "Connection string 'MainDatabase' not found in appsettings.json");
         }
+
         protected NpgsqlConnection GetConnection()
         {
             var connection = new NpgsqlConnection(_connectionString);

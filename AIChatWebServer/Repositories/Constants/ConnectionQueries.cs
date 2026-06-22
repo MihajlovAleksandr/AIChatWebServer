@@ -4,7 +4,7 @@
     {
         public const string AddConnection = @"
             INSERT INTO connections (device, user_id, last_connection) 
-            VALUES (@Device, @UserId, NOW())
+            VALUES (@Device, @UserId, NULL)
             RETURNING id;";
 
         public const string GetConnectionInfo = @"
@@ -25,7 +25,7 @@
               AND device = @Device;";
 
         public const string RemoveConnection =
-            "UPDATE connections SET user_id = NULL WHERE id = @Id";
+            "DELETE FROM connections WHERE id = @Id";
 
         public const string SetLastConnectionOnline =
             "UPDATE connections SET last_connection = NULL WHERE id = @ConnectionId";

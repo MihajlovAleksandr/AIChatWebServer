@@ -1,6 +1,6 @@
 ﻿namespace AIChatWebServer.Models.User
 {
-    public class UserBan(Guid id, Guid userId, string reason, BanReason reasonCategory, DateTime bannedAt, DateTime bannedUntil)
+    public sealed class UserBan(Guid id, Guid userId, string reason, BanReason reasonCategory, DateTime bannedAt, DateTime bannedUntil)
     {
         public Guid Id { get; } = id;
         public Guid UserId { get; } = userId;

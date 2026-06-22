@@ -2,10 +2,15 @@
 
 namespace AIChatWebServer.DTO.Request
 {
-    public record LoginRequest
-    (
-        [property: JsonPropertyName("identifier")] string Identifier,
-        [property: JsonPropertyName("secret")] string Secret, 
-        [property: JsonPropertyName("identityProviderCode")] string IdentityProviderCode
-    );
+    public sealed record LoginRequest
+    {
+        [JsonPropertyName("identifier")]
+        public required string Identifier { get; init; }
+
+        [JsonPropertyName("secret")]
+        public required string Secret { get; init; }
+
+        [JsonPropertyName("identityProviderCode")]
+        public required string IdentityProviderCode { get; init; }
+    }
 }

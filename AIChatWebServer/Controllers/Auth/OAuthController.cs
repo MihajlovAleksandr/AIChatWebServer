@@ -1,11 +1,11 @@
 ﻿using AIChatWebServer.DTO.Request;
 using AIChatWebServer.DTO.Response;
-using AIChatWebServer.Models.Exceptions;
+using AIChatWebServer.Models.Exceptions.Implementations.Context;
+using AIChatWebServer.Models.Exceptions.Implementations.User;
 using AIChatWebServer.Models.User;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
-using AIChatWebServer.Services.Tokens.Interfaces;
-using AIChatWebServer.Utils.Errors;
+using AIChatWebServer.Services.Interfaces.Auth;
+using AIChatWebServer.Services.Interfaces.Connections;
 using AIChatWebServer.Utils.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,8 +19,7 @@ namespace AIChatWebServer.Controllers.Auth
         IWorkTokenFactory workTokenFactory,
         IRegistrationTokenFactory registrationTokenFactory,
         IOAuthValidator oAuthValidator,
-        IRegionGetter regionGetter,
-        IResponseMapper<UserBan, BanResponse> banMapper)
+        IRegionGetter regionGetter)
         : ControllerBase
     {
         private readonly IAuthOAuthService _oauthService = oauthService;
@@ -29,69 +28,45 @@ namespace AIChatWebServer.Controllers.Auth
         private readonly IRegistrationTokenFactory _registrationTokenFactory = registrationTokenFactory;
         private readonly IOAuthValidator _oAuthValidator = oAuthValidator;
         private readonly IRegionGetter _regionGetter = regionGetter;
-        private readonly IResponseMapper<UserBan, BanResponse> _banMapper = banMapper;
 
         [HttpPost("google")]
         public async Task<IActionResult> GoogleAuth(
-            GoogleTokenRequest request,
+            [FromBody] GoogleTokenRequest request,
             [FromServices] IClientContext context,
             CancellationToken ct)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Token))
-            {
-                return BadRequest(
-                    ApiError.Create(OAuthErrors.TokenInvalid));
-            }
+            if (string.IsNullOrWhiteSpace(context.Device))
+                throw new DeviceMissingException();
 
-            if (string.IsNullOrWhiteSpace(context.Device) ||
-                string.IsNullOrWhiteSpace(context.IpAddress) ||
-                string.IsNullOrWhiteSpace(context.LanguageCode))
-            {
-                return BadRequest(
-                    ApiError.Create(OAuthErrors.ContextMissing));
-            }
+            if (string.IsNullOrWhiteSpace(context.LanguageCode))
+                throw new LanguageMissingException();
 
-            OAuthUser? oauthUser;
+            if (string.IsNullOrWhiteSpace(context.IpAddress))
+                throw new IpMissingException();
 
-            try
-            {
-                oauthUser =
+            OAuthUser oauthUser =
                     await _oAuthValidator.ValidateAsync(request.Token);
-            }
-            catch
-            {
-                return Unauthorized(
-                    ApiError.Create(OAuthErrors.TokenInvalid));
-            }
-
-            if (oauthUser == null)
-            {
-                return Unauthorized(
-                    ApiError.Create(OAuthErrors.TokenInvalid));
-            }
             try
             {
-                User? user =
+                User user =
                     await _oauthService.LoginGoogleAsync(
                         oauthUser.Email,
                         oauthUser.Id,
                         ct);
-
-                if (user != null)
-                {
-                    return await SuccessLoginAsync(
-                        user,
-                        context.Device!,
-                        ct);
-                }
-
+                return await SuccessLoginAsync(
+                    user,
+                    context.Device,
+                    ct);
+            }
+            catch (UserNotFoundException)
+            {
                 Guid userId =
-                    await _oauthService.RegisterGoogleAsync(
-                        oauthUser.Email,
-                        oauthUser.Id,
-                        _regionGetter.GetCountryCode(context.IpAddress!),
-                        context.LanguageCode!,
-                        ct);
+                await _oauthService.RegisterGoogleAsync(
+                    oauthUser.Email,
+                    oauthUser.Id,
+                    _regionGetter.GetCountryCode(context.IpAddress!),
+                    context.LanguageCode,
+                    ct);
 
 
                 Guid connectionId =
@@ -107,23 +82,6 @@ namespace AIChatWebServer.Controllers.Auth
                         userId,
                         connectionId,
                         RegistrationState.EmailVerified)));
-            }
-            catch (UserAlreadyExistsException)
-            {
-                return Conflict(
-                    ApiError.Create(OAuthErrors.UserUnauthorized));
-            }
-            catch (UserBannedException ex)
-            {
-                return StatusCode(
-                    StatusCodes.Status403Forbidden,
-                    _banMapper.ToResponse(ex.UserBan));
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiError.Create(OAuthErrors.LoginFailed));
             }
         }
 

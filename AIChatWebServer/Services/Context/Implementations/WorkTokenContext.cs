@@ -1,27 +1,22 @@
-﻿using AIChatWebServer.Services.Context.Implementations;
-using AIChatWebServer.Services.Tokens.Consts;
-using AIChatWebServer.Services.Tokens.Interfaces;
-using System.IdentityModel.Tokens.Jwt;
+﻿using AIChatWebServer.Models.Exceptions.Implementations.Auth;
+using AIChatWebServer.Services.Context.Consts;
+using AIChatWebServer.Services.Context.Interfaces;
+using AIChatWebServer.Utils.Errors;
 
-namespace AIChatWebServer.Security.Contexts
+namespace AIChatWebServer.Services.Context.Implementations
 {
     internal sealed class WorkTokenContext
         : BaseTokenContext, IWorkTokenContext
     {
-        public WorkTokenContext(IHttpContextAccessor accessor)
+        public WorkTokenContext(IUserContextAccessor accessor)
             : base(accessor)
         {
         }
 
-        public Guid? ConnectionId =>
+        public Guid ConnectionId =>
             Guid.TryParse(TryGetClaimValue("connectionId"), out var guid)
                 ? guid
-                : null;
-
-        public bool IsExpired =>
-            ExpiresAtUtc.HasValue &&
-            ExpiresAtUtc.Value <= DateTime.UtcNow;
-
+                : throw new AuthTokenException(SessionErrors.InvalidToken);
 
         public override JwtTokenType TokenType =>
             JwtTokenType.Work;

@@ -11,10 +11,6 @@ namespace AIChatWebServer.Repositories.Interfaces
             AuthIdentity authIdentity,
             CancellationToken cancellationToken = default);
 
-        Task MarkEmailVerifiedAsync(
-            Guid userId,
-            CancellationToken cancellationToken = default);
-
         Task SaveUserDataAsync(
             Guid userId,
             UserData userData,
@@ -25,9 +21,10 @@ namespace AIChatWebServer.Repositories.Interfaces
             Preference preference,
             CancellationToken cancellationToken = default);
 
-        Task CompleteRegistrationAsync(
+        Task UpdateRegistrationStateAsync(
             Guid userId,
-            CancellationToken cancellationToken = default);
+            RegistrationState state,
+            CancellationToken ct = default);
 
         Task UpdateAsync(
             User user,
@@ -73,5 +70,26 @@ namespace AIChatWebServer.Repositories.Interfaces
         Task<Region> GetRegionByCodeAsync(
             string regionCode,
             CancellationToken cancellationToken = default);
+
+        Task UpsertAuthIdentityAsync(
+            Guid userId,
+            AuthIdentity authIdentity,
+            CancellationToken ct = default);
+
+        Task<bool> DeleteAuthIdentityAsync(
+            Guid userId,
+            string providerCode,
+            CancellationToken ct = default);
+
+        Task UpsertUserLanguageAsync(
+            Guid userId,
+            LanguageContext context,
+            string languageCode,
+            CancellationToken ct = default);
+
+        Task<bool> DeleteUserLanguageAsync(
+            Guid userId,
+            LanguageContext context,
+            CancellationToken ct = default);
     }
 }

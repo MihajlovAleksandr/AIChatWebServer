@@ -1,12 +1,11 @@
-﻿using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Tokens.Consts;
-using AIChatWebServer.Services.Tokens.Interfaces;
+﻿using AIChatWebServer.Services.Context.Consts;
+using AIChatWebServer.Services.Context.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace AIChatWebServer.Services.Context.Implementations
 {
-    public class EntryTokenFactory(IJwtTokenGenerator jwt, IConfiguration configuration) : IEntryTokenFactory
+    public sealed class EntryTokenFactory(IJwtTokenGenerator jwt, IConfiguration configuration) : IEntryTokenFactory
     {
         private readonly IJwtTokenGenerator _jwt = jwt;
         private readonly IConfiguration _configuration = configuration;
@@ -15,6 +14,7 @@ namespace AIChatWebServer.Services.Context.Implementations
         {
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim(JwtClaimNames.TokenType, JwtTokenType.Entry.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),

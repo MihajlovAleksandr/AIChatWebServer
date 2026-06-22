@@ -2,6 +2,7 @@
 {
     public sealed class VerificationCodeRecord(
         Guid id,
+        Guid connectionId,
         Guid userId,
         string type,
         string codeHash,
@@ -11,6 +12,7 @@
     {
         public Guid Id { get; } = id;
         public Guid UserId { get; } = userId;
+        public Guid ConnectionId { get; } = connectionId;
         public string Type { get; } = type;
         public string CodeHash { get; } = codeHash;
         public int Attempts { get; } = attempts;

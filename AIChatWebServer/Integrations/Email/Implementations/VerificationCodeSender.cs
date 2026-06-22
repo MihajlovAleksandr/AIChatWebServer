@@ -3,7 +3,7 @@ using AIChatWebServer.Integrations.Email.Interfaces;
 
 namespace AIChatWebServer.Integrations.Email.Implementations
 {
-    public class VerificationCodeSender (IEmailSender emailSender, IEmailTextGetter emailTextGetter) : IVerificationCodeSender
+    public sealed class VerificationCodeSender (IEmailSender emailSender, IEmailTextGetter emailTextGetter) : IVerificationCodeSender
     {
         public async Task SendAsync(string recipientEmail, string code, string localization, CancellationToken ct = default)
         {

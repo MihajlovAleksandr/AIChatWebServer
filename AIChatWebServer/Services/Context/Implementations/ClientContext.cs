@@ -1,53 +1,47 @@
 ﻿using AIChatWebServer.Services.Context.Interfaces;
+using Microsoft.Extensions.Primitives;
 
 namespace AIChatWebServer.Services.Context.Implementations
 {
     internal sealed class ClientContext : IClientContext
     {
-        private const string DeviceHeaderName = "device";
+        private const string DeviceKey = "device";
         private const string LanguageHeaderName = "Accept-Language";
         private const string ForwardedForHeaderName = "X-Forwarded-For";
 
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IUserContextAccessor _contextAccessor;
 
-        public ClientContext(IHttpContextAccessor httpContextAccessor)
+        public ClientContext(IUserContextAccessor contextAccessor)
         {
-            _httpContextAccessor = httpContextAccessor
-                ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _contextAccessor = contextAccessor
+                ?? throw new ArgumentNullException(nameof(contextAccessor));
         }
 
-        public string? Device
-        {
-            get
-            {
-                var context = HttpContext;
-
-                if (context == null)
-                    return null;
-
-                return context.Request.Headers.TryGetValue(DeviceHeaderName, out var value)
-                    ? value.ToString()
-                    : null;
-            }
-        }
+        public string? Device => GetValue(DeviceKey);
 
         public string? LanguageCode
         {
             get
             {
-                var context = HttpContext;
-
-                if (context == null)
+                var raw = GetHeader(LanguageHeaderName);
+                if (string.IsNullOrWhiteSpace(raw))
                     return null;
 
-                if (!context.Request.Headers.TryGetValue(LanguageHeaderName, out var value))
+                var firstLanguage = raw
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Split(';')[0].Trim())
+                    .FirstOrDefault();
+
+                if (string.IsNullOrWhiteSpace(firstLanguage))
                     return null;
 
-                var languages = value.ToString().Split(',');
+                var languageCode = firstLanguage
+                    .Split('-', StringSplitOptions.RemoveEmptyEntries)
+                    .FirstOrDefault();
 
-                return languages.Length > 0
-                    ? languages[0].Trim()
-                    : null;
+                return string.IsNullOrWhiteSpace(languageCode)
+                    ? null
+                    : languageCode.ToLowerInvariant();
             }
         }
 
@@ -56,14 +50,13 @@ namespace AIChatWebServer.Services.Context.Implementations
             get
             {
                 var context = HttpContext;
-
                 if (context == null)
                     return null;
 
-                if (context.Request.Headers.TryGetValue(ForwardedForHeaderName, out var forwarded))
+                var forwarded = GetHeader(ForwardedForHeaderName);
+                if (!string.IsNullOrWhiteSpace(forwarded))
                 {
-                    var ip = forwarded.ToString().Split(',').FirstOrDefault();
-
+                    var ip = forwarded.Split(',').FirstOrDefault();
                     if (!string.IsNullOrWhiteSpace(ip))
                         return ip.Trim();
                 }
@@ -72,7 +65,38 @@ namespace AIChatWebServer.Services.Context.Implementations
             }
         }
 
-        private HttpContext? HttpContext =>
-            _httpContextAccessor.HttpContext;
+        private string? GetValue(string key)
+        {
+            var context = HttpContext;
+            if (context == null)
+                return null;
+
+            if (context.Request.Query.TryGetValue(key, out var queryValue) &&
+                !StringValues.IsNullOrEmpty(queryValue))
+            {
+                return queryValue.ToString();
+            }
+
+            if (context.Request.Headers.TryGetValue(key, out var headerValue) &&
+                !StringValues.IsNullOrEmpty(headerValue))
+            {
+                return headerValue.ToString();
+            }
+
+            return null;
+        }
+
+        private string? GetHeader(string key)
+        {
+            var context = HttpContext;
+            if (context == null)
+                return null;
+
+            return context.Request.Headers.TryGetValue(key, out var value)
+                ? value.ToString()
+                : null;
+        }
+
+        private HttpContext? HttpContext => _contextAccessor.HttpContext;
     }
 }

@@ -7,14 +7,14 @@ using System.Data;
 namespace AIChatWebServer.Repositories.Implementations
 {
     public sealed class VerificationCodeRepository(
-        ILogger<VerificationCodeRepository> logger) :
-        BaseRepository,
+        ILogger<VerificationCodeRepository> logger, IConfiguration configuration) : BaseRepository(configuration),
         IVerificationCodeRepository
     {
         private readonly ILogger<VerificationCodeRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         public async Task UpsertAsync(
             Guid userId,
+            Guid connectionId,
             string type,
             string codeHash,
             DateTime expiresAt,
@@ -36,6 +36,7 @@ namespace AIChatWebServer.Repositories.Implementations
                         connection);
 
                 command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@ConnectionId", connectionId);
                 command.Parameters.AddWithValue("@Type", type);
                 command.Parameters.AddWithValue("@CodeHash", codeHash);
                 command.Parameters.AddWithValue("@ExpiresAt", expiresAt);
@@ -80,6 +81,7 @@ namespace AIChatWebServer.Repositories.Implementations
 
                 return new VerificationCodeRecord(
                     reader.GetGuid("id"),
+                    reader.GetGuid("connection_id"),
                     reader.GetGuid("user_id"),
                     reader.GetString("type"),
                     reader.GetString("code_hash"),
@@ -131,6 +133,7 @@ namespace AIChatWebServer.Repositories.Implementations
 
         public async Task DeleteAsync(
             Guid id,
+            string type,
             CancellationToken ct = default)
         {
             try
@@ -144,6 +147,7 @@ namespace AIChatWebServer.Repositories.Implementations
                         connection);
 
                 command.Parameters.AddWithValue("@Id", id);
+                command.Parameters.AddWithValue("@Type", type);
 
                 await command.ExecuteNonQueryAsync(ct);
             }
@@ -151,8 +155,8 @@ namespace AIChatWebServer.Repositories.Implementations
             {
                 _logger.LogError(
                     ex,
-                    "Failed to delete verification code Id={Id}",
-                    id);
+                    "Failed to delete verification code Id={Id}, Type = {Type}",
+                    id, type);
 
                 throw;
             }

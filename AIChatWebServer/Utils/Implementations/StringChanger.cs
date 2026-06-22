@@ -3,7 +3,7 @@ using System.Text;
 
 namespace AIChatWebServer.Utils.Implementations
 {
-    public class StringChanger : IStringChanger
+    public sealed class StringChanger : IStringChanger
     {
         public string Replace(string text, string search, string replace, int count)
         {

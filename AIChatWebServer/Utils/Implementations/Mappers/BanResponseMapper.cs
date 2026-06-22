@@ -1,10 +1,10 @@
 ﻿using AIChatWebServer.DTO.Response;
 using AIChatWebServer.Models.User;
-using AIChatWebServer.Utils.Interfaces;
+using AIChatWebServer.Utils.Interfaces.Mapper;
 
 namespace AIChatWebServer.Utils.Implementations.Mappers
 {
-    public class BanResponseMapper : IResponseMapper<UserBan, BanResponse>
+    public sealed class BanResponseMapper : IResponseMapper<UserBan, BanResponse>
     {
         public BanResponse ToResponse(UserBan ban)
         {

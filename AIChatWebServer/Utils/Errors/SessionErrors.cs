@@ -9,5 +9,11 @@
 
         public static readonly IErrorCode InvalidToken =
             new SessionErrors("SESSION_INVALID_TOKEN");
+
+        public static readonly IErrorCode ConnectionNotFound =
+            new SessionErrors("SESSION_CONNECTION_NOT_FOUND");
+
+        public static readonly IErrorCode ConnectionForbidden =
+            new SessionErrors("SESSION_CONNECTION_FORBIDDEN");
     }
 }

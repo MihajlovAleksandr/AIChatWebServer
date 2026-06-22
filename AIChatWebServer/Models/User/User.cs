@@ -14,7 +14,7 @@ namespace AIChatWebServer.Models.User
         public Preference? Preference { get; set; }
 
         public ICollection<AuthIdentity> AuthIdentities { get; private set; } = new List<AuthIdentity>();
-        public Dictionary<LanguageContext, string> Language { get; private set; } = new();
+        public Dictionary<LanguageContext, string> Language { get;  set; } = new();
 
         private User() { }
 
@@ -75,6 +75,16 @@ namespace AIChatWebServer.Models.User
                 if(identity.Provider.Code == identityProviderCode) return identity;
             }
             return null;
+        }
+
+        public bool IsPremium()
+        {
+            if (Premium == null || Premium.Count == 0)
+                return false;
+
+            var now = DateTime.UtcNow;
+
+            return Premium.Any(p => p.IsActive(now));
         }
     }
 }

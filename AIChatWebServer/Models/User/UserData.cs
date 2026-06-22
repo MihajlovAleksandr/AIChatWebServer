@@ -1,6 +1,6 @@
 ﻿namespace AIChatWebServer.Models.User
 {
-    public class UserData(Guid id, Gender gender, string name, int age)
+    public sealed class UserData(Guid id, Gender gender, string name, int age)
     {
         public Guid Id { get; set; } = id;
         public Gender Gender { get; set; } = gender;
@@ -32,7 +32,7 @@
 
         public override string ToString()
         {
-            return $"UserData {{{Id}}}\n{Gender}{Age}\n{Name}";
+            return $"{Gender}{Age} {Name}";
         }
     }
 }

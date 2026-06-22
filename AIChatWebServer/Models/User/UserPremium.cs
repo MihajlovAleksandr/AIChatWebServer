@@ -1,14 +1,22 @@
-﻿using System.Text.Json.Serialization;
-
-namespace AIChatWebServer.Models.User
+﻿namespace AIChatWebServer.Models.User
 {
-    public class UserPremium()
+    public sealed record UserPremium
     {
-        [JsonPropertyName("id")]
-        public Guid Id { get; set; }
-        [JsonPropertyName("startTime")]
-        public DateTime StartTime { get; set; }
-        [JsonPropertyName("endTime")]
-        public DateTime EndTime { get; set; }
+        public Guid Id { get; init; }
+
+        public DateTime StartTime { get; init; }
+        public DateTime EndTime { get; init; }
+
+        public bool IsAutoRenew { get; init; }
+        public string? SubscriptionId { get; init; }
+
+        public bool IsActive(DateTime now)
+        {
+            return StartTime <= now && EndTime > now;
+        }
+
+        public bool IsSubscription => SubscriptionId is not null;
+
+        public bool IsAutoRenewEnabled => IsSubscription && IsAutoRenew;
     }
 }

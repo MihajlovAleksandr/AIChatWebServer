@@ -6,7 +6,7 @@ using System.Data;
 
 namespace AIChatWebServer.Repositories.Implementations
 {
-    public sealed class UserRepository : BaseRepository, IUserRepository
+    public sealed class UserRepository(IConfiguration configuration) : BaseRepository(configuration), IUserRepository
     {
         public async Task<Guid> CreateUserAsync(
             string email,
@@ -68,6 +68,13 @@ namespace AIChatWebServer.Repositories.Implementations
 
                 await langCmd.ExecuteNonQueryAsync(cancellationToken);
 
+                await using var notificationCmd =
+                    new NpgsqlCommand(UserQueries.AddNotifications, conn, tx);
+
+                notificationCmd.Parameters.AddWithValue("@UserId", userId);
+
+                await notificationCmd.ExecuteNonQueryAsync(cancellationToken);
+
                 await tx.CommitAsync(cancellationToken);
 
                 return userId;
@@ -85,13 +92,15 @@ namespace AIChatWebServer.Repositories.Implementations
             }
         }
 
-        public Task MarkEmailVerifiedAsync(
+        public Task UpdateRegistrationStateAsync(
             Guid userId,
+            RegistrationState state,
             CancellationToken ct = default) =>
             ExecuteAsync(
-                UserQueries.MarkEmailVerified,
+                UserQueries.UpdateRegistrationState,
                 ct,
-                ("@userId", userId));
+                ("@userId", userId),
+                ("@state", (int)state));
 
         public Task SaveUserDataAsync(
             Guid userId,
@@ -118,14 +127,6 @@ namespace AIChatWebServer.Repositories.Implementations
                 ("@minAge", pref.MinAge),
                 ("@maxAge", pref.MaxAge),
                 ("@preferredGender", pref.Gender.ToString()));
-
-        public Task CompleteRegistrationAsync(
-            Guid userId,
-            CancellationToken ct = default) =>
-            ExecuteAsync(
-                UserQueries.CompleteRegistration,
-                ct,
-                ("@userId", userId));
 
         public Task UpdateAsync(
             User user,
@@ -247,11 +248,7 @@ namespace AIChatWebServer.Repositories.Implementations
             if (!await r.ReadAsync(ct))
                 throw new InvalidOperationException();
 
-            return new Region
-            {
-                Code = r.GetString(0),
-                Name = r.GetString(1)
-            };
+            return new Region(r.GetString(0), r.GetString(1), r.GetString(2));
         }
 
         public async Task<UserBan?> GetUserBanByIdAsync(
@@ -281,6 +278,87 @@ namespace AIChatWebServer.Repositories.Implementations
                 Enum.Parse<BanReason>(r.GetString(3)),
                 r.GetDateTime(4),
                 r.GetDateTime(5));
+        }
+        public async Task UpsertAuthIdentityAsync(
+            Guid userId,
+            AuthIdentity authIdentity,
+            CancellationToken ct = default)
+        {
+
+            await using var conn =
+                await GetConnectionAsync(ct);
+
+            await using var cmd =
+                new NpgsqlCommand(UserQueries.UpsertAuthIdentity, conn);
+
+            cmd.Parameters.AddWithValue("@id", Guid.NewGuid());
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@providerCode", authIdentity.Provider.Code);
+            cmd.Parameters.AddWithValue("@identifier", authIdentity.Identifier);
+            cmd.Parameters.AddWithValue(
+                "@secret",
+                authIdentity.Secret ?? (object)DBNull.Value);
+
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        public async Task<bool> DeleteAuthIdentityAsync(
+            Guid userId,
+            string providerCode,
+            CancellationToken ct = default)
+        {
+            await using var conn =
+                await GetConnectionAsync(ct);
+
+            await using var cmd =
+                new NpgsqlCommand(UserQueries.DeleteAuthIdentity, conn);
+
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@providerCode", providerCode);
+
+            var rowsAffected =
+                await cmd.ExecuteNonQueryAsync(ct);
+
+            return rowsAffected > 0;
+        }
+
+        public async Task UpsertUserLanguageAsync(
+            Guid userId,
+            LanguageContext context,
+            string languageCode,
+            CancellationToken ct = default)
+        {
+            await using var conn =
+                await GetConnectionAsync(ct);
+
+            await using var cmd =
+                new NpgsqlCommand(UserQueries.UpsertUserLanguage, conn);
+
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@context", context.ToString());
+            cmd.Parameters.AddWithValue("@languageCode", languageCode);
+
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        public async Task<bool> DeleteUserLanguageAsync(
+            Guid userId,
+            LanguageContext context,
+            CancellationToken ct = default)
+        {
+            await using var conn =
+                await GetConnectionAsync(ct);
+
+            await using var cmd =
+                new NpgsqlCommand(UserQueries.DeleteUserLanguage, conn);
+
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@context", context.ToString());
+
+            var rowsAffected =
+                await cmd.ExecuteNonQueryAsync(ct);
+
+            return rowsAffected > 0;
         }
 
         private async Task<User?> GetSingleAsync(
@@ -364,12 +442,21 @@ namespace AIChatWebServer.Repositories.Implementations
 
                 if (!r.IsDBNull("premium_id"))
                 {
-                    user.Premium.Add(new UserPremium
+                    var premiumId = r.GetGuid("premium_id");
+
+                    if (!user.Premium.Any(p => p.Id == premiumId))
                     {
-                        Id = r.GetGuid("premium_id"),
-                        StartTime = r.GetDateTime("start_at"),
-                        EndTime = r.GetDateTime("end_at")
-                    });
+                        user.Premium.Add(new UserPremium
+                        {
+                            Id = premiumId,
+                            StartTime = r.GetDateTime("start_at"),
+                            EndTime = r.GetDateTime("end_at"),
+                            IsAutoRenew = r.GetBoolean("is_auto_renew"),
+                            SubscriptionId = r.IsDBNull("subscription_id")
+                                ? null
+                                : r.GetString("subscription_id")
+                        });
+                    }
                 }
 
                 if (!r.IsDBNull("auth_id"))

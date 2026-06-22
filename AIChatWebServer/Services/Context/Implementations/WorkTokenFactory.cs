@@ -1,5 +1,5 @@
-﻿using AIChatWebServer.Services.Tokens.Consts;
-using AIChatWebServer.Services.Tokens.Interfaces;
+﻿using AIChatWebServer.Services.Context.Consts;
+using AIChatWebServer.Services.Context.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -13,6 +13,7 @@ namespace AIChatWebServer.Services.Context.Implementations
         {
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim(JwtClaimNames.TokenType, JwtTokenType.Work.ToString()),
                 new Claim("connectionId", connectionId.ToString()),

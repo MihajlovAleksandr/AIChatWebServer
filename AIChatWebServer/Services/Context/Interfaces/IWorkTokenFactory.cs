@@ -1,4 +1,4 @@
-﻿namespace AIChatWebServer.Services.Tokens.Interfaces
+﻿namespace AIChatWebServer.Services.Context.Interfaces
 {
     public interface IWorkTokenFactory
     {

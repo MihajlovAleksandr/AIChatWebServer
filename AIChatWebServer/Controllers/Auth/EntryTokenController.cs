@@ -1,8 +1,8 @@
-﻿using AIChatWebServer.Models.Exceptions;
+﻿using AIChatWebServer.Hubs.Interfaces;
+using AIChatWebServer.Models.Exceptions.Implementations.Context;
 using AIChatWebServer.Services.Context.Interfaces;
-using AIChatWebServer.Services.Interfaces;
-using AIChatWebServer.Services.Tokens.Interfaces;
-using AIChatWebServer.Utils.Errors;
+using AIChatWebServer.Services.Interfaces.Auth;
+using AIChatWebServer.Services.Interfaces.Connections;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,13 +12,17 @@ namespace AIChatWebServer.Controllers.Auth
     [Route("api/auth/code")]
     public sealed class EntryTokenController(
         IConnectionService connectionService,
+        IConnectionValidator connectionValidator,
         IEntryCodeService entryCodeService,
-        IWorkTokenFactory workTokenFactory)
+        IWorkTokenFactory workTokenFactory,
+        IConnectionNotifier notifier)
         : ControllerBase
     {
         private readonly IConnectionService _connectionService = connectionService;
+        private readonly IConnectionValidator _connectionValidator = connectionValidator;
         private readonly IEntryCodeService _entryCodeService = entryCodeService;
         private readonly IWorkTokenFactory _workTokenFactory = workTokenFactory;
+        private readonly IConnectionNotifier _notifier = notifier;
 
         [Authorize]
         [HttpGet("generate")]
@@ -27,40 +31,19 @@ namespace AIChatWebServer.Controllers.Auth
             [FromServices] IClientContext clientContext,
             CancellationToken ct)
         {
-            if (!IsValidGenerateContext(workContext, clientContext))
-            {
-                return Unauthorized(
-                    ApiError.Create(CodeErrors.ContextInvalid));
-            }
+            await _connectionValidator.ValidateConnectionAsync(
+                workContext.ConnectionId,
+                workContext.UserId,
+                clientContext.Device,
+                ct);
 
-            bool verified =
-                await _connectionService.VerifyConnectionAsync(
-                    workContext.ConnectionId!.Value,
-                    workContext.UserId!.Value,
-                    clientContext.Device!,
+            string code =
+                await _entryCodeService.GenerateAsync(
+                    workContext.ConnectionId,
+                    workContext.UserId,
                     ct);
 
-            if (!verified)
-            {
-                return Unauthorized(
-                    ApiError.Create(CodeErrors.ConnectionInvalid));
-            }
-
-            try
-            {
-                string code =
-                    await _entryCodeService.GenerateAsync(
-                        workContext.UserId!.Value,
-                        ct);
-
-                return Ok(code);
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiError.Create(CodeErrors.GenerateFailed));
-            }
+            return Ok(code);
         }
 
         [HttpPost("verify")]
@@ -69,80 +52,47 @@ namespace AIChatWebServer.Controllers.Auth
             [FromServices] IClientContext clientContext,
             CancellationToken ct)
         {
-            if (!entryContext.UserId.HasValue ||
-                string.IsNullOrWhiteSpace(entryContext.Code))
-            {
-                return Unauthorized(
-                    ApiError.Create(CodeErrors.ContextInvalid));
-            }
 
             if (string.IsNullOrWhiteSpace(clientContext.Device))
-            {
-                return BadRequest(
-                    ApiError.Create(CodeErrors.DeviceMissing));
-            }
+                throw new DeviceMissingException();
 
-            try
-            {
-                await _entryCodeService.VerifyAsync(
-                    entryContext.UserId.Value,
-                    entryContext.Code!,
+            var code = await _entryCodeService.VerifyAsync(
+                entryContext.UserId,
+                entryContext.Code,
+                ct);
+
+            Guid connectionId =
+                await _connectionService.AddConnectionAsync(
+                    clientContext.Device,
+                    entryContext.UserId,
                     ct);
-            }
-            catch (InvalidVerificationCodeException)
-            {
-                return Unauthorized(
-                    ApiError.Create(CodeErrors.InvalidCode));
-            }
-            catch (VerificationCodeExpiredException)
-            {
-                return BadRequest(
-                    ApiError.Create(CodeErrors.CodeExpired));
-            }
-            catch (VerificationCodeAttemptsExceededException)
-            {
-                return Forbid();
-            }
-            catch (VerificationCodeNotFoundException)
-            {
-                return NotFound(
-                    ApiError.Create(CodeErrors.CodeNotFound));
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiError.Create(CodeErrors.VerificationFailed));
-            }
 
-            try
-            {
-                Guid connectionId =
-                    await _connectionService.AddConnectionAsync(
-                        clientContext.Device!,
-                        entryContext.UserId.Value,
-                        ct);
+            await _notifier.EntryCodeUsed(code.ConnectionId);
+            await _notifier.ConnectionAdded(connectionId, entryContext.UserId);
 
-                return Ok(
-                    _workTokenFactory.Create(
-                        entryContext.UserId.Value,
-                        connectionId));
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiError.Create(CommonErrors.InternalError));
-            }
+            return Ok(
+                _workTokenFactory.Create(
+                    entryContext.UserId,
+                    connectionId));
         }
 
-        private static bool IsValidGenerateContext(
-            IWorkTokenContext workContext,
-            IClientContext clientContext)
+        [HttpDelete]
+        public async Task<IActionResult> DeleteCode(
+            [FromServices] IWorkTokenContext workContext,
+            [FromServices] IClientContext clientContext,
+            CancellationToken ct)
         {
-            return workContext.UserId.HasValue
-                   && workContext.ConnectionId.HasValue
-                   && !string.IsNullOrWhiteSpace(clientContext.Device);
+            await _connectionValidator.ValidateConnectionAsync(
+                workContext.ConnectionId,
+                workContext.UserId,
+                clientContext.Device,
+                ct);
+
+            await _entryCodeService.DeleteAsync(
+                workContext.UserId,
+                ct);
+
+            return Ok();
         }
     }
 }
